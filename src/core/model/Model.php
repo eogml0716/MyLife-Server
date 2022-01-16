@@ -3,11 +3,7 @@
 namespace LoLApp\core\model;
 
 use Exception;
-use Firebase\JWT\ExpiredException;
-use Firebase\JWT\JWT;
-use Firebase\JWT\SignatureInvalidException;
 use LoLApp\app\ConfigManager;
-use LoLApp\app\utils\RiotRequester;
 use LoLApp\core\model\database\Query;
 use LoLApp\core\utils\ResponseHelper;
 use stdClass;
@@ -15,8 +11,6 @@ use stdClass;
 class Model
 {
     private $query; // QueryBuilder(데이터 베이스 쿼리를 담당) 클래스의 객체를 저장하는 변수
-    protected $jwt_access_secret_key;
-    protected $jwt_refresh_secret_key;
     protected $server_url = 'http://15.164.0.56';
     // 이미지 저장 관리 폴더명
     protected $image_folder = 'image';
@@ -91,25 +85,5 @@ class Model
         $path = "assets/{$folder_name}/" . $file_name;
         file_put_contents($path, $decoded_string);
         return "{$this->server_url}/{$path}";
-    }
-
-    // 헤더 가져오는 메소드
-    private function get_Auth(): string
-    {
-        if (isset($_SERVER['Authorization'])) {
-            return $_SERVER["Authorization"];
-        }
-
-        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-            return $_SERVER['HTTP_AUTHORIZATION'];
-        }
-
-        if (function_exists('apache_request_headers')) {
-            $headers = apache_request_headers();
-            if (!empty($headers['Authorization'])) {
-                return $headers['Authorization'];
-            }
-        }
-        ResponseHelper::get_instance()->error_response(400, 'no auth');
     }
 }
