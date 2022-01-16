@@ -1,6 +1,6 @@
 <?php
 
-namespace LoLApp\core\model;
+namespace MyLifeServer\core\model;
 
 class HttpRequester
 {

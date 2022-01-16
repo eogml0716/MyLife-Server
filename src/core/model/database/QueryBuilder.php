@@ -1,8 +1,8 @@
 <?php
 
-namespace LoLApp\core\model\database;
+namespace MyLifeServer\core\model\database;
 
-use LoLApp\core\model\database\DbConnector;
+use MyLifeServer\core\model\database\DbConnector;
 
 /**
  * @category 1. SELECT 관련

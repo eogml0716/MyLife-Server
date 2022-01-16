@@ -1,6 +1,6 @@
 <?php
 
-namespace LoLApp\core\controller;
+namespace MyLifeServer\core\controller;
 
 interface ControllerFactory
 {

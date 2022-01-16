@@ -2,16 +2,16 @@
 
 namespace LoLApp\app;
 
-use LoLApp\app\ConfigManager;
-use LoLApp\app\controllers\BoardController;
-use LoLApp\app\controllers\UserController;
-use LoLApp\app\models\BoardModel;
-use LoLApp\app\models\sql\BoardQuery;
-use LoLApp\app\models\sql\UserQuery;
-use LoLApp\app\models\UserModel;
-use LoLApp\core\controller\Controller;
-use LoLApp\core\controller\ControllerFactory;
-use LoLApp\core\utils\ResponseHelper;
+use MyLifeServer\app\ConfigManager;
+use MyLifeServer\app\controllers\BoardController;
+use MyLifeServer\app\controllers\UserController;
+use MyLifeServer\app\models\BoardModel;
+use MyLifeServer\app\models\sql\BoardQuery;
+use MyLifeServer\app\models\sql\UserQuery;
+use MyLifeServer\app\models\UserModel;
+use MyLifeServer\core\controller\Controller;
+use MyLifeServer\core\controller\ControllerFactory;
+use MyLifeServer\core\utils\ResponseHelper;
 
 class MainControllerFactory implements ControllerFactory
 {

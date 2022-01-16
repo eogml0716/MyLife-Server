@@ -1,10 +1,10 @@
 <?php
 
-namespace LoLApp\core\model\database;
+namespace MyLifeServer\core\model\database;
 
 use Exception;
-use LoLApp\core\utils\LogHelper;
-use LoLApp\core\utils\ResponseHelper;
+use MyLifeServer\core\utils\LogHelper;
+use MyLifeServer\core\utils\ResponseHelper;
 use PDO;
 use PDOException;
 use PDOStatement;

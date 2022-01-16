@@ -1,9 +1,9 @@
 <?php
 
-namespace LoLApp\core;
+namespace MyLifeServer\core;
 
-use LoLApp\app\MainControllerFactory;
-use LoLApp\core\utils\ResponseHelper;
+use MyLifeServer\app\MainControllerFactory;
+use MyLifeServer\core\utils\ResponseHelper;
 
 class Router
 {

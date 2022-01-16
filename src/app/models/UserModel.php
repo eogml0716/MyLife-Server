@@ -1,19 +1,13 @@
 <?php
 
-namespace LoLApp\app\models;
+namespace MyLifeServer\app\models;
 
 use Exception;
-use Firebase\JWT\ExpiredException;
-use Firebase\JWT\JWT;
-use Firebase\JWT\SignatureInvalidException;
-use LoLApp\app\ConfigManager;
-use LoLApp\app\models\nosql\UserQuery as NosqlUserQuery;
-use LoLApp\app\models\sql\UserQuery;
-use LoLApp\app\utils\EmailHelper;
-use LoLApp\app\utils\FirebaseRequester;
-use LoLApp\core\model\HttpRequester;
-use LoLApp\core\model\Model;
-use LoLApp\core\utils\ResponseHelper;
+use MyLifeServer\app\ConfigManager;
+use MyLifeServer\app\models\sql\UserQuery;
+use MyLifeServer\core\model\HttpRequester;
+use MyLifeServer\core\model\Model;
+use MyLifeServer\core\utils\ResponseHelper;
 use stdClass;
 
 /**
@@ -35,4 +29,15 @@ class UserModel extends Model
         $this->query = $query;
     }
 
+    /** ------------ @category 1. 등록 관련 ------------ */
+    // (1) 회원가입
+    public function signup(): void
+    {
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case $this->post_method:
+                $response = $this->model->register_user($_POST);
+                echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                break;
+        }
+    }
 }

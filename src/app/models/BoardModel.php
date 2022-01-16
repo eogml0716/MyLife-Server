@@ -1,11 +1,11 @@
 <?php
 
-namespace LoLApp\app\models;
+namespace MyLifeServer\app\models;
 
-use LoLApp\app\ConfigManager;
-use LoLApp\app\models\sql\BoardQuery;
-use LoLApp\core\model\Model;
-use LoLApp\core\utils\ResponseHelper;
+use MyLifeServer\app\ConfigManager;
+use MyLifeServer\app\models\sql\BoardQuery;
+use MyLifeServer\core\model\Model;
+use MyLifeServer\core\utils\ResponseHelper;
 
 /**
  * @category 1. 회원가입 관련

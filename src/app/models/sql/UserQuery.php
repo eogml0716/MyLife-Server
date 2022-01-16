@@ -1,8 +1,8 @@
 <?php
 
-namespace LoLApp\app\models\sql;
+namespace MyLifeServer\app\models\sql;
 
-use LoLApp\core\model\database\Query;
+use MyLifeServer\core\model\database\Query;
 
 class UserQuery extends Query
 {

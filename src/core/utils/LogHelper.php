@@ -1,6 +1,6 @@
 <?php
 
-namespace LoLApp\core\utils;
+namespace MyLifeServer\core\utils;
 
 // TODO: 로그 쌓는 로직 변경 필요
 class LogHelper

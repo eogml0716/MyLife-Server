@@ -1,9 +1,9 @@
 <?php
 
-namespace LoLApp\app\controllers;
+namespace MyLifeServer\app\controllers;
 
-use LoLApp\app\models\BoardModel;
-use LoLApp\core\controller\Controller;
+use MyLifeServer\app\models\BoardModel;
+use MyLifeServer\core\controller\Controller;
 
 class BoardController extends Controller
 {

@@ -1,11 +1,11 @@
 <?php
 
-namespace LoLApp\core\controller;
+namespace MyLifeServer\core\controller;
 
 class Controller
 {
     protected $get_method = 'GET';
-    protected $post_method = 'POST';
+    protected $postMyLifeServer_method = 'POST';
     protected $put_method = 'PUT';
     protected $delete_method = 'DELETE';
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace LoLApp\app;
+namespace MyLifeServer\app;
 
 class ConfigManager
 {

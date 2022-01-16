@@ -1,9 +1,9 @@
 <?php
 
-namespace LoLApp\core\model\database;
+namespace MyLifeServer\core\model\database;
 
-use LoLApp\core\model\database\QueryBuilder;
-use LoLApp\core\utils\ResponseHelper;
+use MyLifeServer\core\model\database\QueryBuilder;
+use MyLifeServer\core\utils\ResponseHelper;
 
 class Query extends QueryBuilder
 {

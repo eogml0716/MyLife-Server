@@ -1,6 +1,6 @@
 <?php
 
-namespace LoLApp\core\utils;
+namespace MyLifeServer\core\utils;
 
 class ResponseHelper
 {

@@ -1,6 +1,6 @@
 <?php
 
-use LoLApp\core\Router;
+use MyLifeServer\core\Router;
 
 // 에러 로그 출력하는 코드
 error_reporting(E_ALL);

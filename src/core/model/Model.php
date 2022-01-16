@@ -1,11 +1,11 @@
 <?php
 
-namespace LoLApp\core\model;
+namespace MyLifeServer\core\model;
 
 use Exception;
-use LoLApp\app\ConfigManager;
-use LoLApp\core\model\database\Query;
-use LoLApp\core\utils\ResponseHelper;
+use MyLifeServer\app\ConfigManager;
+use MyLifeServer\core\model\database\Query;
+use MyLifeServer\core\utils\ResponseHelper;
 use stdClass;
 
 class Model
