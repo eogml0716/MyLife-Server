@@ -8,7 +8,8 @@ use MyLifeServer\core\utils\ResponseHelper;
 class Query extends QueryBuilder
 {
     // 사용자 관련 테이블명
-    public $user = 'user';
+    public $user_table = 'user';
+    public $user_session_table = 'user_session';
 
     public function __construct(array $db_config)
     {
@@ -22,5 +23,12 @@ class Query extends QueryBuilder
             ResponseHelper::get_instance()->error_response(409, 'No data was saved due to a duplicate value entry.');
         }
         return $this->select_last_insert_id()[0]['LAST_INSERT_ID()'];
+    }
+
+    // (2) 세션 id 값으로 user_idx 가져오는 메소드
+    public function select_user_by_session_id(string $session_id): array
+    {
+        $condition_list = $this->make_relational_conditions($this->equal, ['session_id' => $session_id]);
+        return $this->select_by_operator($this->user_session_table, $this->none, ['user_idx'], $condition_list);
     }
 }
