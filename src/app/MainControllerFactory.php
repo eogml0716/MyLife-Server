@@ -1,6 +1,6 @@
 <?php
 
-namespace LoLApp\app;
+namespace MyLifeServer\app;
 
 use MyLifeServer\app\ConfigManager;
 use MyLifeServer\app\controllers\BoardController;

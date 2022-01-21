@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // ------------------ app 실행 ------------------
-//require 'vendor/autoload.php'; // composer auto loading
+require 'vendor/autoload.php'; // composer auto loading
 
 /**
  * 라우팅 작업
@@ -37,3 +37,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
  *  - Router 클래스 내부 함수 , call_action을 통해 컨트롤러 생성 및 메소드 실행
  */
 Router::load('src/app/routes.php')->direct($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']);
+

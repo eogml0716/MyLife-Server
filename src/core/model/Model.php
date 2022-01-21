@@ -15,7 +15,7 @@ class Model
     protected $fail_result = 'FAIL';
     protected $one_hour = 3600;
 
-    protected $server_url = 'http://rdh98.shop';
+    protected $server_url = 'https://rdh98.shop';
     // 이미지 저장 관리 폴더명
     protected $image_folder = 'image';
 

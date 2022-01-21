@@ -61,7 +61,7 @@ class Router
      */
     public function direct(string $request_uri, string $request_method): void
     {
-        $path = parse_url($request_uri, PHP_URL_PATH); // TODO: trailing slash 지워야하면 rtrim 작업 해주기
+        $path = parse_url($request_uri, PHP_URL_PATH); // TODO: traiing slash 지워야하면 rtrim 작업 해주기
 
         if (isset($this->routes[$request_method][$path])) {
             list($controller_type, $method) = explode('@', $this->routes[$request_method][$path]);
@@ -83,7 +83,7 @@ class Router
                 return;
             }
         }
-        ResponseHelper::get_instance()->dev_error_response(404, 'wrong page'); // 잘못된 페이지, 요청 메소드일 때
+        ResponseHelper::get_instance()->dev_error_response(404, "wrong page"); // 잘못된 페이지, 요청 메소드일 때
     }
 
     // controller 객체를 생성하고 $action(controller클래스 메소드)를 실행하는 메소드 + 파일에 로그 쓰기
