@@ -1,0 +1,17 @@
+{
+    "name": "mylife/server",
+    "description": "MyLife Server composer.json file",
+    "authors": [
+        {
+            "name": "RyuDaeHee"
+        }
+    ],
+    "require": {
+        "nesbot/carbon": "^2.55"
+    },
+    "autoload": {
+        "psr-4": {
+            "MyLifeServer\\": "src/"
+        }
+    }
+}

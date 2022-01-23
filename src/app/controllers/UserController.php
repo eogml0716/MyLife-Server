@@ -25,7 +25,6 @@ class UserController extends Controller
     {
         switch ($_SERVER['REQUEST_METHOD']) {
             case $this->post_method:
-                $_POST = $this->get_client_data();
                 $response = $this->model->signup($_POST);
                 echo json_encode($response, JSON_UNESCAPED_UNICODE);
                 break;
