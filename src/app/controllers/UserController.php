@@ -39,16 +39,28 @@ class UserController extends Controller
             case $this->post_method:
                 switch ($type) {
                     case 'general':
-                        $_POST = $this->get_client_data();
                         $response = $this->model->general_signin($_POST);
                         echo json_encode($response, JSON_UNESCAPED_UNICODE);
                         break;
 
-                    case 'auto':
-                        $_POST = $this->get_client_data();
-                        $response = $this->model->auto_signin($_POST);
-                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
-                        break;
+                        // TODO: 자동 로그인, 네이버 로그인, 카카오 로그인
+//                    case 'auto':
+//                        $_POST = $this->get_client_data();
+//                        $response = $this->model->auto_signin($_POST);
+//                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+//                        break;
+//
+//                    case 'naver':
+//                        $_POST = $this->get_client_data();
+//                        $response = $this->model->auto_signin($_POST);
+//                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+//                        break;
+//
+//                    case 'kakao':
+//                        $_POST = $this->get_client_data();
+//                        $response = $this->model->auto_signin($_POST);
+//                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+//                        break;
 
                     default:
                         ResponseHelper::get_instance()->error_response(400, 'wrong login type');
@@ -57,14 +69,14 @@ class UserController extends Controller
         }
     }
 
-    // (2) 로그아웃
-    public function signout(): void
-    {
-        switch ($_SERVER['REQUEST_METHOD']) {
-            case $this->delete_method:
-                $response = $this->model->signout();
-                echo json_encode($response, JSON_UNESCAPED_UNICODE);
-                break;
-        }
-    }
+    // TODO: (?)로그아웃
+//    public function signout(): void
+//    {
+//        switch ($_SERVER['REQUEST_METHOD']) {
+//            case $this->delete_method:
+//                $response = $this->model->signout();
+//                echo json_encode($response, JSON_UNESCAPED_UNICODE);
+//                break;
+//        }
+//    }
 }

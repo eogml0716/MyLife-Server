@@ -16,8 +16,6 @@ class Model
     protected $one_hour = 3600;
 
     protected $server_url = 'https://rdh98.shop';
-    // 이미지 저장 관리 폴더명
-    protected $image_folder = 'image';
 
     public function __construct(Query $query, ConfigManager $config_manager)
     {
@@ -120,7 +118,9 @@ class Model
     }
 
     /** --------------------------- @category ?. 유틸리티 --------------------------- */
-    // (?) 이미지 저장
+    /**
+     * (?) 이미지 저장
+     */
     protected function store_image(string $encoded_image, string $description, string $folder_name)
     {
         $decoded_string = base64_decode($encoded_image);
