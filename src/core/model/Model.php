@@ -17,6 +17,10 @@ class Model
 
     protected $server_url = 'https://rdh98.shop';
 
+    // 이미지 저장 관련 - 폴더명
+    protected $user_image_folder = 'user';
+    protected $post_image_folder = 'post';
+
     public function __construct(Query $query, ConfigManager $config_manager)
     {
         $this->query = $query;

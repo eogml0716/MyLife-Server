@@ -10,6 +10,8 @@ class Query extends QueryBuilder
     // 사용자 관련 테이블명
     public $user_table = 'user';
     public $user_session_table = 'user_session';
+    public $board_table = 'board';
+    public $board_image_table = 'board_image';
 
     public function __construct(array $db_config)
     {
