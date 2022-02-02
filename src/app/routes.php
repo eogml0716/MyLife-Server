@@ -16,13 +16,13 @@ $router->post('/signin/:type(general|auto)', 'User@signin');
 $router->delete('/signout', 'User@signout');
 
 /** ------------ @category 2. 게시글, 댓글 ------------ */
-// TODO: 게시글, 댓글 리스트 가져오기 (무한 스크롤링 or 1개)
+// 게시글, TODO: 댓글 리스트 가져오기 (무한 스크롤링 or 1개)
 $router->get('/read/:type(posts|post|comments|comment)', 'Board@read');
-// TODO: 게시글, 댓글 추가
+// 게시글, TODO: 댓글 추가
 $router->post('/create/:type(post|comment)', 'Board@create');
-// TODO: 게시글, 댓글 수정
+// 게시글, TODO: 댓글 수정
 $router->put('/update/:type(post|comment)', 'Board@update');
-// TODO: 게시글, 댓글 삭제
+// 게시글, 댓글 삭제
 $router->delete('/delete/:type(post|comment)', 'Board@delete');
 // TODO: 게시글, 댓글 좋아요
 $router->put('/update/like/:type(post|comment)', 'Board@update_like');

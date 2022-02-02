@@ -52,7 +52,7 @@ class BoardController extends Controller
         }
     }
 
-    // TODO: 게시글, 댓글 추가
+    // 게시글, TODO: 댓글 추가
     public function create(string $type): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {
@@ -75,7 +75,7 @@ class BoardController extends Controller
         }
     }
 
-    // TODO: 게시글, 댓글 수정
+    // 게시글, TODO: 댓글 수정
     public function update(string $type): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {
@@ -100,7 +100,7 @@ class BoardController extends Controller
         }
     }
 
-    // TODO: 게시글, 댓글 삭제
+    // 게시글, 댓글 삭제
     public function delete(string $type): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {

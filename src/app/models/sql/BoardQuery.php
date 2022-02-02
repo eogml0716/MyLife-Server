@@ -12,6 +12,13 @@ class BoardQuery extends Query
     }
 
     /** ------------ @category ?. SELECT ------------ */
+    // (?) 테이블별 리스트 가져오기 - update_date 기준 정렬
+    public function select_items_order_by_update_date(string $table_name, int $limit, int $start_num): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        return $this->select_page_by_operator($table_name, ['*'], $not_delete_condition,'update_date', $limit, $start_num);
+    }
+
     // 유저 인덱스로 유저 정보 쿼리
     public function select_user_by_user_idx(int $user_idx): array
     {
@@ -19,6 +26,30 @@ class BoardQuery extends Query
         $user_idx_condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
         $conditions = $this->combine_conditions($not_delete_condition, $user_idx_condition);
         return $this->select_by_operator($this->user_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_board_by_board_idx(int $board_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $board_idx_condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $board_idx_condition);
+        return $this->select_by_operator($this->board_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_board_image_by_board_idx(int $board_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $board_idx_condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $board_idx_condition);
+        return $this->select_by_operator($this->board_image_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_comment_by_comment_idx(int $comment_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $comment_idx_condition = $this->make_relational_conditions($this->equal, ['comment_idx' => $comment_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $comment_idx_condition);
+        return $this->select_by_operator($this->comment_table, $this->none, ['*'], $conditions);
     }
 
     /** ------------ @category ?. CREATE 관련 ------------ */
@@ -41,8 +72,40 @@ class BoardQuery extends Query
     }
 
     /** ------------ @category ?. UPDATE 관련 ------------ */
+    public function update_post_by_board_idx(
+        int $board_idx,
+        string $tournament_name,
+        int $user_idx,
+        string $tournament_img,
+        string $tournament_intro,
+    ): void {
+        $column_condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
+        $update_conditions = $this->make_relational_conditions($this->equal, [
+            'tournament_name' => $tournament_name,
+            'user_idx' => $user_idx,
+            'tournament_img' => $tournament_img,
+            'tournament_intro' => $tournament_intro,
+        ]);
+        $this->update_by_operator($this->board_table, $column_condition, $update_conditions);
+    }
 
     /** ------------ @category ?. DELETE 관련 ------------ */
+    public function delete_post_by_board_idx(int $board_idx): void
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
+        $this->delete_by_updating_date($this->board_table, $condition);
+    }
 
+    public function delete_post_image_by_board_idx(int $board_idx): void
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
+        $this->delete_by_updating_date($this->board_image_table, $condition);
+    }
+
+    public function delete_comment_by_comment_idx(int $comment_idx): void
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['comment_idx' => $comment_idx]);
+        $this->delete_by_updating_date($this->comment_table, $condition);
+    }
 
 }
