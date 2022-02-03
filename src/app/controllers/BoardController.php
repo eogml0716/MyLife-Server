@@ -125,27 +125,14 @@ class BoardController extends Controller
         }
     }
 
-    // TODO: 게시글, 댓글 좋아요
-    public function update_like(string $type): void
+    // TODO: 좋아요
+    public function update_like(): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {
             case $this->put_method:
-                switch ($type) {
-                    case 'post':
-                        $_PUT = $this->get_client_data();
-                        $response = $this->model->update_like_post($_PUT);
-                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
-                        break;
-
-                    case 'comment':
-                        $_PUT = $this->get_client_data();
-                        $response = $this->model->update_like_comment($_PUT);
-                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
-                        break;
-
-                    default:
-                        ResponseHelper::get_instance()->error_response(400, 'wrong parameter type');
-                }
+                $_PUT = $this->get_client_data();
+                $response = $this->model->update_like($_PUT);
+                echo json_encode($response, JSON_UNESCAPED_UNICODE);
                 break;
         }
     }

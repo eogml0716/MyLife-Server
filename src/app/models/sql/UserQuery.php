@@ -53,6 +53,14 @@ class UserQuery extends Query
         ]);
     }
 
+    // session_id로 유저 세션 가져오기
+    public function select_user_session(string $session_id): array
+    {
+        $sql_statement = "SELECT * FROM user_session as user_session INNER JOIN user as user 
+                          WHERE user.user_idx = user_session.user_idx  AND session_id = '{$session_id}'";
+        return $this->fetch_query_data($sql_statement);
+    }
+
     /**
      * TODO: (?) 로그인
      * 설명 : 유저 정보를 DB에 저장한다.
@@ -89,6 +97,12 @@ class UserQuery extends Query
      * 설명 : 유저 정보를 DB에 저장한다.
      * @param string $email
      */
+    // (3) session_id로 사용자 세션 삭제 - 회원탈퇴, 로그아웃에서도 사용
+    public function delete_user_session(string $session_id): void
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['session_id' => $session_id]);
+        $this->delete_by_operator($this->user_session_table, $condition);
+    }
 
     /** ----------- @category ?. 유틸리티 ----------- */
     /**
@@ -134,5 +148,14 @@ class UserQuery extends Query
     {
         $conditions = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
         return $this->select_by_operator($this->user_session_table, $this->none, ['*'], $conditions);
+    }
+
+    // 유저 인덱스로 유저 정보 쿼리
+    public function select_user_by_user_idx(int $user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $user_idx_condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $user_idx_condition);
+        return $this->select_by_operator($this->user_table, $this->none, ['*'], $conditions);
     }
 }

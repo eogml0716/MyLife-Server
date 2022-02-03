@@ -13,6 +13,7 @@ class Query extends QueryBuilder
     public $board_table = 'board';
     public $board_image_table = 'board_image';
     public $comment_table = 'comment';
+    public $liked_table = 'liked';
 
     public function __construct(array $db_config)
     {

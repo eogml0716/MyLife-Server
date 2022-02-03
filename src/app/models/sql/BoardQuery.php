@@ -52,6 +52,24 @@ class BoardQuery extends Query
         return $this->select_by_operator($this->comment_table, $this->none, ['*'], $conditions);
     }
 
+    public function select_liked_by_liked_idx(int $liked_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, ['liked_idx' => $liked_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_user_like(int $user_idx, string $type, int $idx): array
+    {
+        $conditions = $this->make_relational_conditions($this->equal, [
+            'user_idx' => $user_idx,
+            'type' => $type,
+            'idx' => $idx
+        ]);
+        return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
+    }
+
     /** ------------ @category ?. CREATE 관련 ------------ */
     // (?) 게시글 등록
     public function insert_board(int $user_idx, string $contents): void
@@ -71,22 +89,33 @@ class BoardQuery extends Query
         ]);
     }
 
+    // (?) 좋아요 등록
+    public function insert_liked(int $user_idx, string $type, int $idx): void
+    {
+        $this->insert_data($this->liked_table, [
+            'user_idx' => $user_idx,
+            'type' => $type,
+            'idx' => $idx
+        ]);
+    }
+
     /** ------------ @category ?. UPDATE 관련 ------------ */
     public function update_post_by_board_idx(
         int $board_idx,
-        string $tournament_name,
-        int $user_idx,
-        string $tournament_img,
-        string $tournament_intro,
+        string $contents
     ): void {
         $column_condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
         $update_conditions = $this->make_relational_conditions($this->equal, [
-            'tournament_name' => $tournament_name,
-            'user_idx' => $user_idx,
-            'tournament_img' => $tournament_img,
-            'tournament_intro' => $tournament_intro,
+            'contents' => $contents
         ]);
         $this->update_by_operator($this->board_table, $column_condition, $update_conditions);
+    }
+
+    public function update_like_count(string $table_name, int $idx, string $operator)
+    {
+        $column_condition = $this->make_relational_conditions($this->equal, ["{$table_name}_idx" => $idx]);
+        $update_condition = $this->make_relational_conditions($this->equal, ['like_num' => "like_num{$operator}"], false);
+        $this->update_by_operator($table_name, $column_condition, $update_condition);
     }
 
     /** ------------ @category ?. DELETE 관련 ------------ */
@@ -106,6 +135,12 @@ class BoardQuery extends Query
     {
         $condition = $this->make_relational_conditions($this->equal, ['comment_idx' => $comment_idx]);
         $this->delete_by_updating_date($this->comment_table, $condition);
+    }
+
+    public function delete_liked_by_liked_idx(int $liked_idx): void
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['liked_idx' => $liked_idx]);
+        $this->delete_by_updating_date($this->liked_table, $condition);
     }
 
 }

@@ -10,7 +10,7 @@ $router = new Router();
 // 회원가입
 $router->post('/signup', 'User@signup');
 
-// 로그인, TODO: 자동 로그인
+// 로그인 (일반, 자동)
 $router->post('/signin/:type(general|auto)', 'User@signin');
 // TODO: 로그아웃
 $router->delete('/signout', 'User@signout');
@@ -24,8 +24,8 @@ $router->post('/create/:type(post|comment)', 'Board@create');
 $router->put('/update/:type(post|comment)', 'Board@update');
 // 게시글, 댓글 삭제
 $router->delete('/delete/:type(post|comment)', 'Board@delete');
-// TODO: 게시글, 댓글 좋아요
-$router->put('/update/like/:type(post|comment)', 'Board@update_like');
+// TODO: 좋아요
+$router->put('/update/like', 'Board@update_like');
 
 /** ------------ @category 4. 마이페이지 ------------ */
 

@@ -66,9 +66,8 @@ class UserModel extends Model
 
         // 이메일, 비밀번호로 회원가입 여부 확인
         $registered_user_result = $this->query->select_user_by_email_and_password($email, $password);
-
         // 유저 정보가 없으면 에러 발생
-        if (empty($registered_user_result)) ResponseHelper::get_instance()->error_response(204, 'no such user'); // TODO: 바꿔놓기
+        if (empty($registered_user_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent user'); // TODO: 바꿔놓기
 
         // 가입한 사용자인 경우
         $registered_user_row = $registered_user_result[0]; // $registered_user_row : 가입한 사용자 정보(유저 인덱스 + 프로필 이미지)를 가져옴 (type: array)
@@ -111,7 +110,59 @@ class UserModel extends Model
         ];
     }
 
-    // TODO: (?) 자동 로그인
+    // 로그인 (자동)
+    public function auto_signin(array $client_data): array
+    {
+        $user_idx = $this->check_string_data($client_data, 'user_idx');
+        $session_id = $this->get_session_id(); // 클라가 보낸 세션 id를 받음
+        $session_array = $this->generate_session(false); // 세션 id를 제외한 생성 시간, 만기 시간 생성
+        $generation_time = $session_array['generation_time'];
+        $expiration_time = $session_array['expiration_time'];
+
+        $user_result = $this->query->select_user_by_user_idx($user_idx);
+        if (empty($user_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent user');
+        // 유저의 session_id로 세션이 존재하는지 확인한다.
+        $user_session_result = $this->query->select_user_session($session_id);
+        if ($user_session_result[0]['user_idx'] != $user_idx) ResponseHelper::get_instance()->error_response(204, 'invalid user index');
+
+        // 테이블에 세션 정보가 없다면 쿠키 제거
+        if (empty($user_session_result)) {
+            setcookie('session_id', '', time() - $this->one_hour); // 세션 관련 쿠키 삭제
+            ResponseHelper::get_instance()->error_response(400, 'wrong session, need new login');
+        }
+
+        $db_expiration_time = $user_session_result[0]['expiration_time'];
+        $db_user_idx = (int)$user_session_result[0]['user_idx'];
+        $db_email = (int)$user_session_result[0]['email'];
+        $db_name = $user_session_result[0]['name']; // 클라이언트에 보내주기 위해서 DB에서 가져옴
+        $db_profile_image_url = $user_session_result[0]['profile_image_url'];
+
+        // 세션이 만료된 경우 - 세션 테이블, 쿠키에서 세션 데이터 삭제
+        if ($generation_time > $db_expiration_time) {
+            $this->query->delete_user_session($session_id); // 세션 테이블에서 세션 삭제
+            setcookie('session_id', '', time() - $this->one_hour); // 세션 관련 쿠키 삭제
+            ResponseHelper::get_instance()->error_response(400, 'session expiration, need new login');
+        }
+
+        // 세션이 만료되지 않은 경우
+        $this->query->begin_transaction();
+        // 사용자 세션 업데이트
+        $this->query->update_user_session($session_id, $expiration_time);
+        // 유저의 마지막 로그인 시간 및 정보 수정
+        $this->query->update_user_last_login($db_user_idx);
+        $this->query->commit_transaction();
+
+        // 응답할 때 쿠키에 사용자가 보낸 세션 아이디를 담아서 보낸다.
+        setcookie('session_id', $session_id);
+        // 응답할 때 클라이언트에 유저 정보를 보낸다.
+        return [
+            'result' => $this->success_result,
+            'user_idx' => $db_user_idx,
+            'email' => $db_email,
+            'name' => $db_name,
+            'profile_image_url' => $db_profile_image_url
+        ];
+    }
 
     // TODO: (?) 로그인 (네이버)
 

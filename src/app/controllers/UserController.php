@@ -43,19 +43,18 @@ class UserController extends Controller
                         echo json_encode($response, JSON_UNESCAPED_UNICODE);
                         break;
 
-                        // TODO: 자동 로그인, 네이버 로그인, 카카오 로그인
-//                    case 'auto':
-//                        $_POST = $this->get_client_data();
-//                        $response = $this->model->auto_signin($_POST);
-//                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
-//                        break;
-//
+                        // 자동 로그인
+                    case 'auto':
+                        $response = $this->model->auto_signin($_POST);
+                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                        break;
+                        // TODO: 네이버 로그인
 //                    case 'naver':
 //                        $_POST = $this->get_client_data();
 //                        $response = $this->model->auto_signin($_POST);
 //                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
 //                        break;
-//
+                       // TODO: 카카오 로그인
 //                    case 'kakao':
 //                        $_POST = $this->get_client_data();
 //                        $response = $this->model->auto_signin($_POST);
