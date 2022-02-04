@@ -210,7 +210,6 @@ class BoardModel extends Model
     {
         $this->check_user_session($client_data);
 
-        $liked_idx = $this->check_int_data($client_data, 'liked_idx');
         $user_idx = $this->check_int_data($client_data, 'user_idx');
         $type = $this->check_string_data($client_data, 'type');
         $idx = $this->check_int_data($client_data, 'idx');
@@ -223,18 +222,16 @@ class BoardModel extends Model
         // 좋아요를 누른 상태 -> 좋아요 테이블에 좋아요가 등록되어있지 않음
         if ($is_like) {
             // 예외 처리 : 이미 좋아요가 눌려있는 상태인 경우
-            $duplicated_liked_result = $this->query->select_liked_by_liked_idx($liked_idx);
+            $duplicated_liked_result = $this->query->select_liked($user_idx, $type_upper, $idx);
             if ($duplicated_liked_result) ResponseHelper::get_instance()->error_response(400, 'already pressed like');
 
             $this->query->insert_liked($user_idx, $type_upper, $idx);
             $operator = '+1';
         } else {
-            // 예외 처리 : 좋아요가 이미 비어있는 경우
-            $liked_result = $this->query->select_liked_by_liked_idx($liked_idx);
-            if (empty($liked_result)) ResponseHelper::get_instance()->error_response(400, 'non-existent like');
-
-            $this->query->delete_liked_by_liked_idx($liked_idx);
+            // TODO: 예외 처리 : 좋아요가 없는 경우
+            $this->query->delete_liked($user_idx, $type_upper, $idx);
             $operator = '-1';
+
         }
 
         // 좋아요 개수 업데이트
@@ -244,20 +241,12 @@ class BoardModel extends Model
                 $this->query->update_like_count('board', $idx, $operator);
                 $board_result = $this->query->select_board_by_board_idx($idx);
                 $likes = (int)$board_result[0]['likes'];
-                // TODO: 유저가 좋아요 눌렀는 지 체크해주는 과정은 너무 과투자인 거 같기도하고, 일단 동작 테스트 해보고 고치든지 할 것
-                $user_like_result = $this->query->select_user_like($user_idx, $type_upper, $idx);
-                $is_user_like = false; // 좋아요 했는지 여부 (default - false)
-                if (!empty($user_like_result))  $is_user_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_user_like true로 변경
                 break;
 
             case 'COMMENT':
                 $this->query->update_like_count('comment', $idx, $operator);
                 $comment_result = $this->query->select_comment_by_comment_idx($idx);
                 $likes = (int)$comment_result[0]['likes'];
-                // TODO: 유저가 좋아요 눌렀는 지 체크해주는 과정은 너무 과투자인 거 같기도하고, 일단 동작 테스트 해보고 고치든지 할 것
-                $user_like_result = $this->query->select_user_like($user_idx, $type_upper, $idx);
-                $is_user_like = false; // 좋아요 했는지 여부 (default - false)
-                if (!empty($user_like_result))  $is_user_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_user_like true로 변경
                 break;
         }
         $this->query->commit_transaction();
@@ -265,7 +254,7 @@ class BoardModel extends Model
         return [
             'result' => $this->success_result,
             'likes' => $likes,
-            'is_like' => $is_user_like
+            'is_like' => $is_like
         ];
     }
 
@@ -290,7 +279,7 @@ class BoardModel extends Model
             $post_item['comments'] = (int)$post_item_result['comments'];
 
             // 유저의 게시글 좋아요 boolean값 가져오기
-            $user_like_result = $this->query->select_user_like($user_idx, 'POST', $board_idx);
+            $user_like_result = $this->query->select_liked($user_idx, 'POST', $board_idx);
             $is_user_like = false; // 좋아요 했는지 여부 (default - false)
             if (!empty($user_like_result))  $is_user_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_user_like true로 변경
             $post_item['is_like'] = $is_user_like;

@@ -52,21 +52,15 @@ class BoardQuery extends Query
         return $this->select_by_operator($this->comment_table, $this->none, ['*'], $conditions);
     }
 
-    public function select_liked_by_liked_idx(int $liked_idx): array
+    public function select_liked(int $user_idx, string $type, int $idx): array
     {
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
-        $condition = $this->make_relational_conditions($this->equal, ['liked_idx' => $liked_idx]);
-        $conditions = $this->combine_conditions($not_delete_condition, $condition);
-        return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
-    }
-
-    public function select_user_like(int $user_idx, string $type, int $idx): array
-    {
-        $conditions = $this->make_relational_conditions($this->equal, [
+        $condition = $this->make_relational_conditions($this->equal, [
             'user_idx' => $user_idx,
             'type' => $type,
             'idx' => $idx
         ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
         return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
     }
 
@@ -114,7 +108,7 @@ class BoardQuery extends Query
     public function update_like_count(string $table_name, int $idx, string $operator)
     {
         $column_condition = $this->make_relational_conditions($this->equal, ["{$table_name}_idx" => $idx]);
-        $update_condition = $this->make_relational_conditions($this->equal, ['like_num' => "like_num{$operator}"], false);
+        $update_condition = $this->make_relational_conditions($this->equal, ['likes' => "likes{$operator}"], false);
         $this->update_by_operator($table_name, $column_condition, $update_condition);
     }
 
@@ -137,9 +131,13 @@ class BoardQuery extends Query
         $this->delete_by_updating_date($this->comment_table, $condition);
     }
 
-    public function delete_liked_by_liked_idx(int $liked_idx): void
+    public function delete_liked(int $user_idx, string $type, int $idx): void
     {
-        $condition = $this->make_relational_conditions($this->equal, ['liked_idx' => $liked_idx]);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'user_idx' => $user_idx,
+            'type' => $type,
+            'idx' => $idx
+        ]);
         $this->delete_by_updating_date($this->liked_table, $condition);
     }
 
