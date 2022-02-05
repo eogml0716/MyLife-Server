@@ -245,7 +245,7 @@ class BoardModel extends Model
         // 예외 처리 : 해당 글을 작성한 유저의 인덱스 값과 클라이언트로부터 전송된 유저 인덱스 값을 비교 -> 다르면 에러 발생
         $comment_result = $this->query->select_comment_by_comment_idx($comment_idx);
         // 예외 처리 : 해당 글을 작성한 유저의 인덱스 값과 클라이언트로부터 전송된 유저 인덱스 값을 비교 -> 다르면 에러 발생
-        if ($comment_result['user_idx'] != $user_idx) ResponseHelper::get_instance()->error_response(409, 'invalid user index');
+        if ($comment_result[0]['user_idx'] != $user_idx) ResponseHelper::get_instance()->error_response(409, 'invalid user index');
 
         // 댓글 삭제
         $this->query->delete_comment_by_comment_idx($comment_idx);

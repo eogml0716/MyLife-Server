@@ -16,17 +16,24 @@ $router->post('/signin/:type(general|auto)', 'User@signin');
 $router->delete('/signout', 'User@signout');
 
 /** ------------ @category 2. 게시글, 댓글 ------------ */
-// 게시글, TODO: 댓글 리스트 가져오기 (무한 스크롤링 or 1개)
+// 게시글, 댓글 리스트 가져오기 (무한 스크롤링 or TODO: 1개)
 $router->get('/read/:type(posts|post|comments|comment)', 'Board@read');
-// 게시글, TODO: 댓글 추가
+// 게시글, 댓글 추가
 $router->post('/create/:type(post|comment)', 'Board@create');
-// 게시글, TODO: 댓글 수정
+// 게시글, 댓글 수정
 $router->put('/update/:type(post|comment)', 'Board@update');
 // 게시글, 댓글 삭제
 $router->delete('/delete/:type(post|comment)', 'Board@delete');
-// TODO: 좋아요
+// 좋아요
 $router->put('/update/like', 'Board@update_like');
 
+/** ------------ @category 2. 검색 탭 관련 ------------ */
+
+
+/** ------------ @category 2. 알림 탭 관련 ------------ */
+
+
 /** ------------ @category 4. 마이페이지 ------------ */
+
 
 return $router; // 경로를 추가한 라우터 객체 반환

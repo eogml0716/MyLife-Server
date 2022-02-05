@@ -2,16 +2,22 @@
 
 namespace MyLifeServer\app;
 
-use MyLifeServer\app\ConfigManager;
-use MyLifeServer\app\controllers\BoardController;
-use MyLifeServer\app\controllers\UserController;
-use MyLifeServer\app\models\BoardModel;
-use MyLifeServer\app\models\sql\BoardQuery;
-use MyLifeServer\app\models\sql\UserQuery;
-use MyLifeServer\app\models\UserModel;
 use MyLifeServer\core\controller\Controller;
 use MyLifeServer\core\controller\ControllerFactory;
 use MyLifeServer\core\utils\ResponseHelper;
+use MyLifeServer\app\ConfigManager;
+use MyLifeServer\app\controllers\UserController;
+use MyLifeServer\app\controllers\BoardController;
+use MyLifeServer\app\controllers\SearchController;
+use MyLifeServer\app\controllers\NotificationController;
+use MyLifeServer\app\models\UserModel;
+use MyLifeServer\app\models\BoardModel;
+use MyLifeServer\app\models\SearchModel;
+use MyLifeServer\app\models\NotificationModel;
+use MyLifeServer\app\models\sql\UserQuery;
+use MyLifeServer\app\models\sql\BoardQuery;
+use MyLifeServer\app\models\sql\SearchQuery;
+use MyLifeServer\app\models\sql\NotificationQuery;
 
 class MainControllerFactory implements ControllerFactory
 {
@@ -28,6 +34,14 @@ class MainControllerFactory implements ControllerFactory
 
             case 'Board':
                 $controller = new BoardController(new BoardModel(new BoardQuery($db_config), $config_manager));
+                break;
+
+            case 'Search':
+                $controller = new SearchController(new SearchModel(new SearchQuery($db_config), $config_manager));
+                break;
+
+            case 'Notification':
+                $controller = new NotificationController(new NotificationModel(new NotificationQuery($db_config), $config_manager));
                 break;
 
             default:
