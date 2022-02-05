@@ -3,7 +3,7 @@
 namespace MyLifeServer\app\models;
 
 use MyLifeServer\app\ConfigManager;
-use MyLifeServer\app\models\sql\BoardQuery;
+use MyLifeServer\app\models\sql\CommonQuery;
 use MyLifeServer\core\model\Model;
 use MyLifeServer\core\utils\ResponseHelper;
 
@@ -20,7 +20,7 @@ class BoardModel extends Model
 {
     private $query;
 
-    public function __construct(BoardQuery $query, ConfigManager $config_manager)
+    public function __construct(CommonQuery $query, ConfigManager $config_manager)
     {
         parent::__construct($query, $config_manager);
         $this->query = $query;
@@ -37,7 +37,7 @@ class BoardModel extends Model
         $start_num = ($page - 1) * $limit; // 요청하는 페이지에 시작 번호
         $is_last = false;
 
-        $posts_result = $this->query->select_items_order_by_update_date($table_name, $limit, $start_num);
+        $posts_result = $this->query->select_items_order_by_create_date($table_name, $limit, $start_num);
 
         if (empty($posts_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
         if (count($posts_result) < $limit) $is_last = true;
@@ -63,7 +63,7 @@ class BoardModel extends Model
         $start_num = ($page - 1) * $limit; // 요청하는 페이지에 시작 번호
         $is_last = false;
 
-        $comments_result = $this->query->select_comments_order_by_update_date($table_name, $limit, $start_num, $board_idx);
+        $comments_result = $this->query->select_comments_order_by_create_date($table_name, $limit, $start_num, $board_idx);
 
         if (empty($comments_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
         if (count($comments_result) < $limit) $is_last = true;
@@ -77,19 +77,51 @@ class BoardModel extends Model
         ];
     }
 
-    // TODO: 게시글 가져오기 (1개)
+    // 게시글 가져오기 (1개)
     public function read_post(array $client_data): array
     {
-        return [
-            'result' => $this->success_result
-        ];
-    }
+        $this->check_user_session($client_data);
 
-    // TODO: 댓글 가져오기 (1개) -> 굳이 필요하지 않을 거 같음...
-    public function read_comment(array $client_data): array
-    {
+        $user_idx = $this->check_int_data($client_data, 'user_idx');
+        $board_idx = $this->check_int_data($client_data, 'board_idx');
+
+        $user_result = $this->query->select_user_by_user_idx($user_idx);
+        if (empty($user_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent user');
+        $board_result = $this->query->select_board_by_board_idx($board_idx);
+        if (empty($board_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent post');
+        $board_image_result = $this->query->select_board_image_by_board_idx($board_idx);
+        if (empty($board_image_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent post image');
+
+        $user_row = $user_result[0];
+        $board_row = $board_result[0];
+        $board_image_row = $board_image_result[0];
+
+        $board_idx = (int)$board_row['board_idx'];
+        $user_idx = (int)$board_row['user_idx'];
+        $name = $user_row['name'];
+        $profile_image_url = $user_row['profile_image_url'];
+        $image_url = $board_image_row['image_url'];
+        $contents = $board_row['contents'];
+        $likes = (int)$board_row['likes'];
+        $comments = (int)$board_row['comments'];
+        // 유저의 게시글 좋아요 boolean값 가져오기
+        $user_like_result = $this->query->select_liked($user_idx, 'POST', $board_idx);
+        $is_like = false; // 좋아요 했는지 여부 (default - false)
+        if (!empty($user_like_result))  $is_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_user_like true로 변경
+        $create_date = $board_row['create_date'];
+
         return [
             'result' => $this->success_result,
+            'board_idx' => $board_idx,
+            'user_idx' => $user_idx,
+            'name' => $name,
+            'profile_image_url' => $profile_image_url,
+            'image_url' => $image_url,
+            'contents' => $contents,
+            'likes' => $likes,
+            'comments' => $comments,
+            'is_like' => $is_like,
+            'create_date' => $create_date,
         ];
     }
 
@@ -335,7 +367,7 @@ class BoardModel extends Model
 
             $post_item['create_date'] = $post_item_result['create_date'];
             $post_item['update_date'] = $post_item_result['update_date'];
-            $post_item['delete_date'] = $post_item_result['delete_date'];
+
             $posts[] = $post_item;
         }
         return $posts;
@@ -368,7 +400,6 @@ class BoardModel extends Model
 
             $comment_item['create_date'] = $comment_item_result['create_date'];
             $comment_item['update_date'] = $comment_item_result['update_date'];
-            $comment_item['delete_date'] = $comment_item_result['delete_date'];
 
             $comments[] = $comment_item;
         }

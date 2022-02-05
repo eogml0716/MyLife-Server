@@ -48,6 +48,7 @@ class UserController extends Controller
                         $response = $this->model->auto_signin($_POST);
                         echo json_encode($response, JSON_UNESCAPED_UNICODE);
                         break;
+
                         // TODO: 네이버 로그인
 //                    case 'naver':
 //                        $_POST = $this->get_client_data();
@@ -68,14 +69,15 @@ class UserController extends Controller
         }
     }
 
-    // TODO: (?)로그아웃
-//    public function signout(): void
-//    {
-//        switch ($_SERVER['REQUEST_METHOD']) {
-//            case $this->delete_method:
-//                $response = $this->model->signout();
-//                echo json_encode($response, JSON_UNESCAPED_UNICODE);
-//                break;
-//        }
-//    }
+    // (?) 로그아웃
+    public function signout(): void
+    {
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case $this->delete_method:
+                $_DELETE = $this->get_client_data();
+                $response = $this->model->signout($_DELETE);
+                echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                break;
+        }
+    }
 }

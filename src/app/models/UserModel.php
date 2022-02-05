@@ -4,7 +4,7 @@ namespace MyLifeServer\app\models;
 
 use Exception;
 use MyLifeServer\app\ConfigManager;
-use MyLifeServer\app\models\sql\UserQuery;
+use MyLifeServer\app\models\sql\CommonQuery;
 use MyLifeServer\core\model\HttpRequester;
 use MyLifeServer\core\model\Model;
 use MyLifeServer\core\utils\ResponseHelper;
@@ -23,7 +23,7 @@ class UserModel extends Model
 {
     private $query;
 
-    public function __construct(UserQuery $query, ConfigManager $config_manager)
+    public function __construct(CommonQuery $query, ConfigManager $config_manager)
     {
         parent::__construct($query, $config_manager);
         $this->query = $query;
@@ -74,6 +74,7 @@ class UserModel extends Model
         $user_idx = (int)$registered_user_row['user_idx'];
         $name = $registered_user_row['name']; // 클라이언트에 보내주기 위해서 DB에서 가져옴
         $profile_image_url = $registered_user_row['profile_image_url'];
+        $about_me = $registered_user_row['about_me'];
 
         $this->query->begin_transaction();
         // 유저의 마지막 로그인 시간 수정
@@ -106,14 +107,16 @@ class UserModel extends Model
             'user_idx' => $user_idx,
             'email' => $email,
             'name' => $name,
-            'profile_image_url' => $profile_image_url
+            'profile_image_url' => $profile_image_url,
+            'about_me' => $about_me
         ];
     }
 
     // 로그인 (자동)
     public function auto_signin(array $client_data): array
     {
-        $user_idx = $this->check_string_data($client_data, 'user_idx');
+        $user_idx = $this->check_int_data($client_data, 'user_idx');
+
         $session_id = $this->get_session_id(); // 클라가 보낸 세션 id를 받음
         $session_array = $this->generate_session(false); // 세션 id를 제외한 생성 시간, 만기 시간 생성
         $generation_time = $session_array['generation_time'];
@@ -136,6 +139,7 @@ class UserModel extends Model
         $db_email = (int)$user_session_result[0]['email'];
         $db_name = $user_session_result[0]['name']; // 클라이언트에 보내주기 위해서 DB에서 가져옴
         $db_profile_image_url = $user_session_result[0]['profile_image_url'];
+        $db_about_me = $user_session_result[0]['about_me'];
 
         // 세션이 만료된 경우 - 세션 테이블, 쿠키에서 세션 데이터 삭제
         if ($generation_time > $db_expiration_time) {
@@ -160,7 +164,8 @@ class UserModel extends Model
             'user_idx' => $db_user_idx,
             'email' => $db_email,
             'name' => $db_name,
-            'profile_image_url' => $db_profile_image_url
+            'profile_image_url' => $db_profile_image_url,
+            'about_me' => $db_about_me
         ];
     }
 
@@ -169,7 +174,19 @@ class UserModel extends Model
     // TODO: (?) 로그인 (카카오)
 
     // TODO: (?) 로그아웃
+    public function signout(array $client_data): array
+    {
+        $this->check_user_session($client_data);
+        $session_id = $this->get_session_id();
 
+        $this->query->delete_user_session($session_id); // 사용자 세션을 디비에서 삭제한다.
+
+        setcookie("session_id", "", time() - $this->one_hour); // 서버에서 보낼 응답 데이터에 세션을 삭제한다.
+
+        return [
+            'result' => $this->success_result
+        ];
+    }
 
     /** ----------- @category ?. 유틸리티 ----------- */
     private function generate_session(bool $need_session_id): array

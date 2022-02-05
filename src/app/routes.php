@@ -12,11 +12,11 @@ $router->post('/signup', 'User@signup');
 
 // 로그인 (일반, 자동)
 $router->post('/signin/:type(general|auto)', 'User@signin');
-// TODO: 로그아웃
+// 로그아웃
 $router->delete('/signout', 'User@signout');
 
 /** ------------ @category 2. 게시글, 댓글 ------------ */
-// 게시글, 댓글 리스트 가져오기 (무한 스크롤링 or TODO: 1개)
+// 게시글, 댓글 리스트 가져오기 (무한 스크롤링 or 1개) - TODO: 게시글의 경우 팔로우한 사람 게시글만 가져오게 변경하기
 $router->get('/read/:type(posts|post|comments|comment)', 'Board@read');
 // 게시글, 댓글 추가
 $router->post('/create/:type(post|comment)', 'Board@create');
@@ -28,12 +28,23 @@ $router->delete('/delete/:type(post|comment)', 'Board@delete');
 $router->put('/update/like', 'Board@update_like');
 
 /** ------------ @category 2. 검색 탭 관련 ------------ */
+// TODO: 유저 검색
 
+// TODO: 게시글 랜덤으로 가져오기 (무한 스크롤링)
 
 /** ------------ @category 2. 알림 탭 관련 ------------ */
+// TODO: 알림 추가(?)
 
+// TODO: 알림 가져오기 (무한 스크롤링)
 
 /** ------------ @category 4. 마이페이지 ------------ */
-
+// TODO: 나의 프로필, 다른 사람 프로필 가져오기 (1개), 내가 적성한 게시글, 다른 사람이 작성한 게시글 가져오기 (무한 스크롤링)
+$router->get('/read/profile/:type(me|mine|other|others)', 'Profile@read');
+// TODO: 나의 프로필 수정하기
+$router->put('/update/profile', 'Profile@update');
+// TODO: 팔로잉, 팔로워 가져오기 (무한 스크롤링)
+$router->get('/read/follow/:type(following|follower)', 'Profile@read_follow');
+// TODO: 팔로우, 팔로잉 - 좋아요랑 구현 방식이 비슷할 거 같은데
+$router->put('/update/profile/follow', 'Profile@update_follow');
 
 return $router; // 경로를 추가한 라우터 객체 반환

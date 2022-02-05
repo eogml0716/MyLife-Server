@@ -10,14 +10,13 @@ use MyLifeServer\app\controllers\UserController;
 use MyLifeServer\app\controllers\BoardController;
 use MyLifeServer\app\controllers\SearchController;
 use MyLifeServer\app\controllers\NotificationController;
+use MyLifeServer\app\controllers\ProfileController;
 use MyLifeServer\app\models\UserModel;
 use MyLifeServer\app\models\BoardModel;
 use MyLifeServer\app\models\SearchModel;
 use MyLifeServer\app\models\NotificationModel;
-use MyLifeServer\app\models\sql\UserQuery;
-use MyLifeServer\app\models\sql\BoardQuery;
-use MyLifeServer\app\models\sql\SearchQuery;
-use MyLifeServer\app\models\sql\NotificationQuery;
+use MyLifeServer\app\models\ProfileModel;
+use MyLifeServer\app\models\sql\CommonQuery;
 
 class MainControllerFactory implements ControllerFactory
 {
@@ -29,19 +28,23 @@ class MainControllerFactory implements ControllerFactory
 
         switch ($type) {
             case 'User':
-                $controller = new UserController(new UserModel(new UserQuery($db_config), $config_manager));
+                $controller = new UserController(new UserModel(new CommonQuery($db_config), $config_manager));
                 break;
 
             case 'Board':
-                $controller = new BoardController(new BoardModel(new BoardQuery($db_config), $config_manager));
+                $controller = new BoardController(new BoardModel(new CommonQuery($db_config), $config_manager));
                 break;
 
             case 'Search':
-                $controller = new SearchController(new SearchModel(new SearchQuery($db_config), $config_manager));
+                $controller = new SearchController(new SearchModel(new CommonQuery($db_config), $config_manager));
                 break;
 
             case 'Notification':
-                $controller = new NotificationController(new NotificationModel(new NotificationQuery($db_config), $config_manager));
+                $controller = new NotificationController(new NotificationModel(new CommonQuery($db_config), $config_manager));
+                break;
+
+            case 'Profile':
+                $controller = new ProfileController(new ProfileModel(new CommonQuery($db_config), $config_manager));
                 break;
 
             default:

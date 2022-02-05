@@ -19,7 +19,7 @@ class BoardController extends Controller
         $this->model = $model;
     }
 
-    // TODO: 게시글, 댓글 리스트 가져오기 (무한 스크롤링 or 1개)
+    // 게시글, 댓글 리스트 가져오기 (무한 스크롤링 or 1개)
     public function read(string $type): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {
@@ -40,11 +40,6 @@ class BoardController extends Controller
                         echo json_encode($response, JSON_UNESCAPED_UNICODE);
                         break;
 
-                    case 'comment':
-                        $response = $this->model->read_comment($_GET);
-                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
-                        break;
-
                     default:
                         ResponseHelper::get_instance()->error_response(400, 'wrong parameter type');
                 }
@@ -52,7 +47,7 @@ class BoardController extends Controller
         }
     }
 
-    // 게시글, TODO: 댓글 추가
+    // 게시글, 댓글 추가
     public function create(string $type): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {
@@ -75,7 +70,7 @@ class BoardController extends Controller
         }
     }
 
-    // 게시글, TODO: 댓글 수정
+    // 게시글, 댓글 수정
     public function update(string $type): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {
@@ -125,7 +120,7 @@ class BoardController extends Controller
         }
     }
 
-    // TODO: 좋아요
+    // 좋아요
     public function update_like(): void
     {
         switch ($_SERVER['REQUEST_METHOD']) {
