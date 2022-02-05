@@ -19,6 +19,15 @@ class BoardQuery extends Query
         return $this->select_page_by_operator($table_name, ['*'], $not_delete_condition,'update_date', $limit, $start_num);
     }
 
+    // (?) 댓글 아이템 리스트 가져오기 - update_date 기준 정렬
+    public function select_comments_order_by_update_date(string $table_name, int $limit, int $start_num, int $board_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $board_idx_condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $board_idx_condition);
+        return $this->select_page_by_operator($table_name, ['*'], $conditions,'update_date', $limit, $start_num);
+    }
+
     // 유저 인덱스로 유저 정보 쿼리
     public function select_user_by_user_idx(int $user_idx): array
     {
@@ -83,6 +92,15 @@ class BoardQuery extends Query
         ]);
     }
 
+    public function insert_comment(int $user_idx, int $board_idx, string $contents): void
+    {
+        $this->insert_data($this->comment_table, [
+            'user_idx' => $user_idx,
+            'board_idx' => $board_idx,
+            'contents' => $contents
+        ]);
+    }
+
     // (?) 좋아요 등록
     public function insert_liked(int $user_idx, string $type, int $idx): void
     {
@@ -103,6 +121,17 @@ class BoardQuery extends Query
             'contents' => $contents
         ]);
         $this->update_by_operator($this->board_table, $column_condition, $update_conditions);
+    }
+
+    public function update_comment_by_comment_idx(
+        int $comment_idx,
+        string $contents
+    ): void {
+        $column_condition = $this->make_relational_conditions($this->equal, ['comment_idx' => $comment_idx]);
+        $update_conditions = $this->make_relational_conditions($this->equal, [
+            'contents' => $contents
+        ]);
+        $this->update_by_operator($this->comment_table, $column_condition, $update_conditions);
     }
 
     public function update_like_count(string $table_name, int $idx, string $operator)
