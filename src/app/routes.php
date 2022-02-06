@@ -38,13 +38,13 @@ $router->put('/update/like', 'Board@update_like');
 // TODO: 알림 가져오기 (무한 스크롤링)
 
 /** ------------ @category 4. 마이페이지 ------------ */
-// TODO: 나의 프로필, 다른 사람 프로필 가져오기 (1개), 내가 적성한 게시글, 다른 사람이 작성한 게시글 가져오기 (무한 스크롤링)
-$router->get('/read/profile/:type(me|mine|other|others)', 'Profile@read');
-// TODO: 나의 프로필 수정하기
-$router->put('/update/profile', 'Profile@update');
+// 프로필 가져오기 (1개), 프로필 페이지 작성한 게시글 가져오기 (무한 스크롤링)
+$router->get('/read/profile/:type(info|posts)', 'Profile@read');
+// 나의 프로필 수정하기
+$router->put('/update/profile', 'Profile@update_profile');
 // TODO: 팔로잉, 팔로워 가져오기 (무한 스크롤링)
 $router->get('/read/follow/:type(following|follower)', 'Profile@read_follow');
-// TODO: 팔로우, 팔로잉 - 좋아요랑 구현 방식이 비슷할 거 같은데
+// TODO: 팔로우, 언팔로우 - 좋아요랑 구현 방식이 비슷할 거 같은데
 $router->put('/update/profile/follow', 'Profile@update_follow');
 
 return $router; // 경로를 추가한 라우터 객체 반환

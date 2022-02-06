@@ -92,36 +92,39 @@ class BoardModel extends Model
         $board_image_result = $this->query->select_board_image_by_board_idx($board_idx);
         if (empty($board_image_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent post image');
 
-        $user_row = $user_result[0];
         $board_row = $board_result[0];
         $board_image_row = $board_image_result[0];
 
-        $board_idx = (int)$board_row['board_idx'];
-        $user_idx = (int)$board_row['user_idx'];
-        $name = $user_row['name'];
-        $profile_image_url = $user_row['profile_image_url'];
-        $image_url = $board_image_row['image_url'];
-        $contents = $board_row['contents'];
-        $likes = (int)$board_row['likes'];
-        $comments = (int)$board_row['comments'];
-        // 유저의 게시글 좋아요 boolean값 가져오기
+        $db_board_idx = (int)$board_row['board_idx'];
+        $db_user_idx = (int)$board_row['user_idx'];
+
+        $post_user_result = $this->query->select_user_by_user_idx($db_user_idx);
+        $post_user_row = $post_user_result[0];
+
+        $db_name = $post_user_row['name'];
+        $db_profile_image_url = $post_user_row['profile_image_url'];
+        $db_image_url = $board_image_row['image_url'];
+        $db_contents = $board_row['contents'];
+        $db_likes = (int)$board_row['likes'];
+        $db_comments = (int)$board_row['comments'];
+        // 해당 요청을 보낸 유저의 게시글 좋아요 boolean값 가져오기
         $user_like_result = $this->query->select_liked($user_idx, 'POST', $board_idx);
         $is_like = false; // 좋아요 했는지 여부 (default - false)
         if (!empty($user_like_result))  $is_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_user_like true로 변경
-        $create_date = $board_row['create_date'];
+        $db_create_date = $board_row['create_date'];
 
         return [
             'result' => $this->success_result,
-            'board_idx' => $board_idx,
-            'user_idx' => $user_idx,
-            'name' => $name,
-            'profile_image_url' => $profile_image_url,
-            'image_url' => $image_url,
-            'contents' => $contents,
-            'likes' => $likes,
-            'comments' => $comments,
+            'board_idx' => $db_board_idx,
+            'user_idx' => $db_user_idx,
+            'name' => $db_name,
+            'profile_image_url' => $db_profile_image_url,
+            'image_url' => $db_image_url,
+            'contents' => $db_contents,
+            'likes' => $db_likes,
+            'comments' => $db_comments,
             'is_like' => $is_like,
-            'create_date' => $create_date,
+            'create_date' => $db_create_date,
         ];
     }
 
@@ -164,7 +167,11 @@ class BoardModel extends Model
         $board_result = $this->query->select_board_by_board_idx($board_idx);
         if (empty($board_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent post');
 
+        $this->query->begin_transaction();
         $this->query->insert_comment($user_idx, $board_idx, $contents);
+        $comment_count = $this->query->select_comment_count($board_idx);
+        $this->query->update_comment_count('board', $board_idx, $comment_count);
+        $this->query->commit_transaction();
 
         return [
             'result' => $this->success_result,
@@ -279,8 +286,15 @@ class BoardModel extends Model
         // 예외 처리 : 해당 글을 작성한 유저의 인덱스 값과 클라이언트로부터 전송된 유저 인덱스 값을 비교 -> 다르면 에러 발생
         if ($comment_result[0]['user_idx'] != $user_idx) ResponseHelper::get_instance()->error_response(409, 'invalid user index');
 
+        $comment_row = $comment_result[0];
+        $board_idx = $comment_row['board_idx'];
+
         // 댓글 삭제
+        $this->query->begin_transaction();
         $this->query->delete_comment_by_comment_idx($comment_idx);
+        $comment_count = $this->query->select_comment_count($board_idx);
+        $this->query->update_comment_count('board', $board_idx, $comment_count);
+        $this->query->commit_transaction();
 
         return [
             'result' => $this->success_result
@@ -319,13 +333,15 @@ class BoardModel extends Model
         switch ($type_upper) {
             case 'POST':
                 // TODO: 처음에 board라고 해놓은 거 진작에 안 고쳐서 이거 switch문 쓰고있네 씨 발, 고치자
-                $this->query->update_like_count('board', $idx, $operator);
+                $like_count = $this->query->select_like_count($type_upper, $idx);
+                $this->query->update_like_count('board', $idx, $like_count);
                 $board_result = $this->query->select_board_by_board_idx($idx);
                 $likes = (int)$board_result[0]['likes'];
                 break;
 
             case 'COMMENT':
-                $this->query->update_like_count('comment', $idx, $operator);
+                $like_count = $this->query->select_like_count($type_upper, $idx);
+                $this->query->update_like_count('comment', $idx, $like_count);
                 $comment_result = $this->query->select_comment_by_comment_idx($idx);
                 $likes = (int)$comment_result[0]['likes'];
                 break;

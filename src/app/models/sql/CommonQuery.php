@@ -82,7 +82,7 @@ class CommonQuery extends Query
     }
 
     // (?) 나의 게시글 리스트 가져오기 - create_date 기준 정렬
-    public function select_my_posts_order_by_create_date(string $table_name, int $limit, int $start_num, int $user_idx): array
+    public function select_posts_order_by_create_date(string $table_name, int $limit, int $start_num, int $user_idx): array
     {
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
         $user_idx_condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
@@ -133,6 +133,38 @@ class CommonQuery extends Query
         ]);
         $conditions = $this->combine_conditions($not_delete_condition, $condition);
         return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
+    }
+
+    // TODO: 그냥 like_count라고 이름을 지을 걸 그랬나 되게 불편하네
+    public function select_like_count(string $type, int $idx): int
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'type' => $type,
+            'idx' => $idx
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->liked_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
+    }
+
+    public function select_post_count(int $user_idx): int
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'user_idx' => $user_idx
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->board_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
+    }
+
+    public function select_comment_count(int $board_idx): int
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'board_idx' => $board_idx
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->comment_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
     }
 
     /** ------------ @category ?. CREATE ------------ */
@@ -261,11 +293,43 @@ class CommonQuery extends Query
         $this->update_by_operator($this->comment_table, $column_condition, $update_conditions);
     }
 
-    public function update_like_count(string $table_name, int $idx, string $operator)
+    public function update_comment_count(string $table_name, int $idx, int $comments)
     {
         $column_condition = $this->make_relational_conditions($this->equal, ["{$table_name}_idx" => $idx]);
-        $update_condition = $this->make_relational_conditions($this->equal, ['likes' => "likes{$operator}"], false);
+        // TODO: count 함수 계속 쓰면 되게 비효율적이라고 하는데... 정확한 좋아요 개수 계산을 위해서는 그냥 count 쓰는 게 낫지않나...? 아닌가?
+//        $update_condition = $this->make_relational_conditions($this->equal, ['likes' => "likes{$operator}"], false);
+        $update_condition = $this->make_relational_conditions($this->equal, ['comments' => $comments]);
         $this->update_by_operator($table_name, $column_condition, $update_condition);
+    }
+
+    public function update_like_count(string $table_name, int $idx, int $likes)
+    {
+        $column_condition = $this->make_relational_conditions($this->equal, ["{$table_name}_idx" => $idx]);
+        // TODO: count 함수 계속 쓰면 되게 비효율적이라고 하는데... 정확한 좋아요 개수 계산을 위해서는 그냥 count 쓰는 게 낫지않나...? 아닌가?
+//        $update_condition = $this->make_relational_conditions($this->equal, ['likes' => "likes{$operator}"], false);
+        $update_condition = $this->make_relational_conditions($this->equal, ['likes' => $likes]);
+        $this->update_by_operator($table_name, $column_condition, $update_condition);
+    }
+
+    public function update_user_profile_by_image_change(int $user_idx, string $profile_image_url, string $name, string $about_me)
+    {
+        $column_condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
+        $update_conditions = $this->make_relational_conditions($this->equal, [
+            'profile_image_url' => $profile_image_url,
+            'name' => $name,
+            'about_me' => $about_me
+        ]);
+        $this->update_by_operator($this->user_table, $column_condition, $update_conditions);
+    }
+
+    public function update_user_profile(int $user_idx, string $name, string $about_me)
+    {
+        $column_condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
+        $update_conditions = $this->make_relational_conditions($this->equal, [
+            'name' => $name,
+            'about_me' => $about_me
+        ]);
+        $this->update_by_operator($this->user_table, $column_condition, $update_conditions);
     }
 
     /** ------------ @category ?. DELETE ------------ */
