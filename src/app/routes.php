@@ -28,9 +28,8 @@ $router->delete('/delete/:type(post|comment)', 'Board@delete');
 $router->put('/update/like', 'Board@update_like');
 
 /** ------------ @category 2. 검색 탭 관련 ------------ */
-// TODO: 유저 검색
-
-// TODO: 게시글 랜덤으로 가져오기 (무한 스크롤링)
+// 유저 검색, 게시글 랜덤으로 가져오기 (무한 스크롤링)
+$router->get('/read/search/:type(users|posts)', 'Search@read');
 
 /** ------------ @category 2. 알림 탭 관련 ------------ */
 // TODO: 알림 추가(?)
@@ -42,9 +41,9 @@ $router->put('/update/like', 'Board@update_like');
 $router->get('/read/profile/:type(info|posts)', 'Profile@read');
 // 나의 프로필 수정하기
 $router->put('/update/profile', 'Profile@update_profile');
-// TODO: 팔로잉, 팔로워 가져오기 (무한 스크롤링)
-$router->get('/read/follow/:type(following|follower)', 'Profile@read_follow');
-// TODO: 팔로우, 언팔로우 - 좋아요랑 구현 방식이 비슷할 거 같은데
+// 팔로잉, 팔로워 가져오기 (무한 스크롤링)
+$router->get('/read/follow/:type(followings|followers)', 'Profile@read_follow');
+// 팔로우, 언팔로우 - 좋아요랑 구현 방식이 비슷할 거 같은데
 $router->put('/update/profile/follow', 'Profile@update_follow');
 
 return $router; // 경로를 추가한 라우터 객체 반환

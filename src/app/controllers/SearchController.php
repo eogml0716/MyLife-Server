@@ -19,4 +19,25 @@ class SearchController extends Controller
         $this->model = $model;
     }
 
+    public function read(string $type): void
+    {
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case $this->get_method:
+                switch ($type) {
+                    case 'users':
+                        $response = $this->model->read_users($_GET);
+                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                        break;
+
+                    case 'posts':
+                        $response = $this->model->read_posts($_GET);
+                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                        break;
+
+                    default:
+                        ResponseHelper::get_instance()->error_response(400, 'wrong parameter type');
+                }
+                break;
+        }
+    }
 }

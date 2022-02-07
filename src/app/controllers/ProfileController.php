@@ -53,6 +53,28 @@ class ProfileController extends Controller
         }
     }
 
+    public function read_follow(string $type): void
+    {
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case $this->get_method:
+                switch ($type) {
+                    case 'followings':
+                        $response = $this->model->read_followings($_GET);
+                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                        break;
+
+                    case 'followers':
+                        $response = $this->model->read_followers($_GET);
+                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                        break;
+
+                    default:
+                        ResponseHelper::get_instance()->error_response(400, 'wrong parameter type');
+                }
+                break;
+        }
+    }
+
     // 팔로우, 언팔로우
     public function update_follow(): void
     {

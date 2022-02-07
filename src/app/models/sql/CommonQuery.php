@@ -15,8 +15,7 @@ class CommonQuery extends Query
     // session_id로 유저 세션 가져오기
     public function select_user_session(string $session_id): array
     {
-        $sql_statement = "SELECT * FROM user_session as user_session INNER JOIN user as user 
-                          WHERE user.user_idx = user_session.user_idx  AND session_id = '{$session_id}'";
+        $sql_statement = "SELECT * FROM user_session INNER JOIN user WHERE user.user_idx = user_session.user_idx AND session_id = '{$session_id}'";
         return $this->fetch_query_data($sql_statement);
     }
 
@@ -74,11 +73,19 @@ class CommonQuery extends Query
         return $this->select_by_operator($this->user_table, $this->none, ['*'], $conditions);
     }
 
-    // (?) 테이블별 리스트 가져오기 - create_date 기준 정렬
-    public function select_items_order_by_create_date(string $table_name, int $limit, int $start_num): array
+    // (?) 내가 팔로잉한 사람이 게시글 리스트 가져오기 - create_date 기준 정렬 TODO: 현재 구현 중, 에러 터질 수 있음
+    public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx): array
     {
-        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
-        return $this->select_page_by_operator($table_name, ['*'], $not_delete_condition,'create_date', $limit, $start_num);
+        $sql_statement = "SELECT * FROM board INNER JOIN follow ON board.user_idx = follow.to_user_idx WHERE follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
+//        echo $sql_statement;
+        return $this->fetch_query_data($sql_statement);
+    }
+
+    public function select_random_posts(int $limit, int $start_num): array
+    {
+        $sql_statement = "SELECT * FROM board WHERE delete_date IS NULL ORDER BY RAND() DESC LIMIT {$limit} OFFSET {$start_num}";
+//        echo $sql_statement;
+        return $this->fetch_query_data($sql_statement);
     }
 
     // (?) 나의 게시글 리스트 가져오기 - create_date 기준 정렬
@@ -96,6 +103,24 @@ class CommonQuery extends Query
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
         $board_idx_condition = $this->make_relational_conditions($this->equal, ['board_idx' => $board_idx]);
         $conditions = $this->combine_conditions($not_delete_condition, $board_idx_condition);
+        return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
+    }
+
+    // (?) 팔로잉 리스트 가져오기 - create_date 기준 정렬
+    public function select_followings_order_by_create_date(string $table_name, int $limit, int $start_num, int $from_user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $from_user_idx_condition = $this->make_relational_conditions($this->equal, ['from_user_idx' => $from_user_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $from_user_idx_condition);
+        return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
+    }
+
+    // (?) 팔로워 리스트 가져오기 - create_date 기준 정렬
+    public function select_followers_order_by_create_date(string $table_name, int $limit, int $start_num, int $to_user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $to_user_idx_condition = $this->make_relational_conditions($this->equal, ['to_user_idx' => $to_user_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $to_user_idx_condition);
         return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
     }
 
@@ -165,6 +190,47 @@ class CommonQuery extends Query
         ]);
         $conditions = $this->combine_conditions($not_delete_condition, $condition);
         return $this->select_by_operator($this->comment_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
+    }
+
+    public function select_follow(int $from_user_idx, int $to_user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'from_user_idx' => $from_user_idx,
+            'to_user_idx' => $to_user_idx
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->follow_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_follower_count(int $to_user_idx)
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'to_user_idx' => $to_user_idx
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->follow_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
+    }
+
+    public function select_following_count(int $from_user_idx)
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'from_user_idx' => $from_user_idx
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->follow_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
+    }
+
+    public function select_search_users(string $table_name, string $search_word, int $limit, int $start_num): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->like, [
+            'name' => $search_word
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_page_by_operator($table_name, ['*'], $conditions, 'create_date', $limit, $start_num);
     }
 
     /** ------------ @category ?. CREATE ------------ */
@@ -242,6 +308,14 @@ class CommonQuery extends Query
             'user_idx' => $user_idx,
             'type' => $type,
             'idx' => $idx
+        ]);
+    }
+
+    public function insert_follow(int $from_user_idx, int $to_user_idx): void
+    {
+        $this->insert_data($this->follow_table, [
+            'from_user_idx' => $from_user_idx,
+            'to_user_idx' => $to_user_idx
         ]);
     }
 
@@ -373,4 +447,12 @@ class CommonQuery extends Query
         $this->delete_by_updating_date($this->liked_table, $condition);
     }
 
+    public function delete_follow(int $from_user_idx, int $to_user_idx): void
+    {
+        $condition = $this->make_relational_conditions($this->equal, [
+            'from_user_idx' => $from_user_idx,
+            'to_user_idx' => $to_user_idx
+        ]);
+        $this->delete_by_updating_date($this->follow_table, $condition);
+    }
 }

@@ -14,6 +14,7 @@ class Query extends QueryBuilder
     public $board_image_table = 'board_image';
     public $comment_table = 'comment';
     public $liked_table = 'liked';
+    public $follow_table = 'follow';
 
     public function __construct(array $db_config)
     {

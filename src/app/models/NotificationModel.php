@@ -19,5 +19,4 @@ class NotificationModel extends Model
         parent::__construct($query, $config_manager);
         $this->query = $query;
     }
-
 }

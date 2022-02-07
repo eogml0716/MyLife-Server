@@ -26,18 +26,18 @@ class BoardModel extends Model
         $this->query = $query;
     }
 
-    // 게시글 리스트 가져오기 (무한 스크롤링)
+    // 내가 팔로잉한 사람의 게시글 리스트 가져오기 (무한 스크롤링)
     public function read_posts(array $client_data): array
     {
         $this->check_user_session($client_data);
         // TODO: 팔로잉한 사람들 게시글만 가져올 수 있게 커스터마이징 해야함
+        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $page = $this->check_int_data($client_data, 'page');
         $limit = $this->check_int_data($client_data, 'limit');
-        $table_name = $this->query->board_table;
         $start_num = ($page - 1) * $limit; // 요청하는 페이지에 시작 번호
         $is_last = false;
 
-        $posts_result = $this->query->select_items_order_by_create_date($table_name, $limit, $start_num);
+        $posts_result = $this->query->select_items_order_by_create_date($limit, $start_num, $user_idx);
 
         if (empty($posts_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
         if (count($posts_result) < $limit) $is_last = true;
@@ -378,7 +378,7 @@ class BoardModel extends Model
             // 유저의 게시글 좋아요 boolean값 가져오기
             $user_like_result = $this->query->select_liked($user_idx, 'POST', $board_idx);
             $is_like = false; // 좋아요 했는지 여부 (default - false)
-            if (!empty($user_like_result))  $is_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_user_like true로 변경
+            if (!empty($user_like_result))  $is_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_like true로 변경
             $post_item['is_like'] = $is_like;
 
             $post_item['create_date'] = $post_item_result['create_date'];

@@ -18,5 +18,4 @@ class NotificationController extends Controller
     {
         $this->model = $model;
     }
-
 }
