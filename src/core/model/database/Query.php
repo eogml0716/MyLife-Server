@@ -15,6 +15,7 @@ class Query extends QueryBuilder
     public $comment_table = 'comment';
     public $liked_table = 'liked';
     public $follow_table = 'follow';
+    public $notification_table = 'notification';
 
     public function __construct(array $db_config)
     {

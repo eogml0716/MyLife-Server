@@ -2,13 +2,12 @@
 
 namespace MyLifeServer\app\models;
 
-use Exception;
 use MyLifeServer\app\ConfigManager;
 use MyLifeServer\app\models\sql\CommonQuery;
+use MyLifeServer\app\utils\FirebaseRequester;
 use MyLifeServer\core\model\HttpRequester;
 use MyLifeServer\core\model\Model;
 use MyLifeServer\core\utils\ResponseHelper;
-use stdClass;
 
 class ProfileModel extends Model
 {
@@ -23,8 +22,7 @@ class ProfileModel extends Model
     // 프로필 정보 가져오기
     public function read_info(array $client_data): array
     {
-        $this->check_user_session($client_data);
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
+        $user_idx = $this->check_user_session($client_data);
         $idx = $this->check_int_data($client_data, 'idx');
 
         $from_user_idx = $user_idx;
@@ -40,8 +38,8 @@ class ProfileModel extends Model
         $about_me = $user_row['about_me'];
         $post_count = $this->query->select_post_count($idx);
         // TODO: followers, followings 이런 거는 ArrayList에서 자주 사용하는 용어여서 개수를 셀 때는 그냥 뒤에 count를 붙여주는게 좋을 거 같음 (나중에 수정하기)
-        $follower_count = $this->query->select_follower_count($to_user_idx);
-        $following_count = $this->query->select_following_count($to_user_idx);
+        $follower_count = $this->query->select_follower_count($idx);
+        $following_count = $this->query->select_following_count($idx);
         $user_follow_result = $this->query->select_follow($from_user_idx, $to_user_idx);
         $is_follow = false; // 팔로우 했는지 여부 (default - false)
         if (!empty($user_follow_result))  $is_follow = true; // 쿼리 결과 사용자가 팔로우 했다면 $is_follow를 true로 변경
@@ -86,9 +84,7 @@ class ProfileModel extends Model
 
     public function update_profile(array $client_data): array
     {
-        $this->check_user_session($client_data);
-
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
+        $user_idx = $this->check_user_session($client_data);
         $image = $this->check_string_data($client_data, 'image');
         $image_name = $this->check_string_data($client_data, 'image_name');
         $name = $this->check_string_data($client_data, 'name');
@@ -126,10 +122,10 @@ class ProfileModel extends Model
 
     public function read_followings(array $client_data): array
     {
-        $this->check_user_session($client_data);
+        $user_idx = $this->check_user_session($client_data);
         $page = $this->check_int_data($client_data, 'page');
         $limit = $this->check_int_data($client_data, 'limit');
-        $idx = $this->check_int_data($client_data, 'idx');
+        $idx = $this->check_int_data($client_data, 'idx'); // 어떤 유저의 팔로잉 목록인 지
         $table_name = $this->query->follow_table;
         $start_num = ($page - 1) * $limit; // 요청하는 페이지에 시작 번호
         $is_last = false;
@@ -141,18 +137,21 @@ class ProfileModel extends Model
         if (empty($followings_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
         if (count($followings_result) < $limit) $is_last = true;
 
-        $followings = $this->make_followings_items($followings_result);
+        $followings = $this->make_followings_items($followings_result, $user_idx);
+        $following_count = $this->query->select_following_count($from_user_idx);
 
         return [
             'result' => $this->success_result,
             'isLast' => $is_last,
-            'followings' => $followings
+            'followings' => $followings,
+            'following_count' => $following_count
         ];
     }
 
     public function read_followers(array $client_data): array
     {
         $this->check_user_session($client_data);
+        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $page = $this->check_int_data($client_data, 'page');
         $limit = $this->check_int_data($client_data, 'limit');
         $idx = $this->check_int_data($client_data, 'idx');
@@ -167,21 +166,21 @@ class ProfileModel extends Model
         if (empty($followers_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
         if (count($followers_result) < $limit) $is_last = true;
 
-        $followers = $this->make_followers_items($followers_result);
+        $followers = $this->make_followers_items($followers_result, $user_idx);
+        $follower_count = $this->query->select_follower_count($to_user_idx);
 
         return [
             'result' => $this->success_result,
             'isLast' => $is_last,
-            'followers' => $followers
+            'followers' => $followers,
+            'follower_count' => $follower_count
         ];
     }
 
     // 팔로우, 언팔로우 - 이거 건드리고 유저 정보? 가져오는 메소드들 전부 수정을 해주어야함함
    public function update_follow(array $client_data): array
     {
-        $this->check_user_session($client_data);
-
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
+        $user_idx = $this->check_user_session($client_data);
         $idx = $this->check_int_data($client_data, 'idx');
         $is_follow = $this->check_boolean_data($client_data, 'is_follow');
 
@@ -195,15 +194,33 @@ class ProfileModel extends Model
             $duplicated_liked_result = $this->query->select_follow($from_user_idx, $to_user_idx);
             if ($duplicated_liked_result) ResponseHelper::get_instance()->error_response(400, 'already pressed follow');
 
+            $this->query->begin_transaction();
             $this->query->insert_follow($from_user_idx, $to_user_idx);
+            // 누군가 나 (여기서 "나"는 현재 로그인 해서 이용 중인 유저를 꼭 가리키는 게 아님), TODO: FCM 처리하기
+            $from_user_result = $this->query->select_user_by_user_idx($from_user_idx);
+            $to_user_result = $this->query->select_user_by_user_idx($to_user_idx);
+
+            $from_name = $from_user_result[0]['name'];
+            $to_name = $to_user_result[0]['name'];
+
+            $notification_type = "NEW_FOLLOW";
+            $contents = "{$from_name}님이 {$to_name}님을 팔로우 하였습니다.";
+            $table_type = $this->query->user_table;
+            $idx = $to_user_idx;
+
+            $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
+            $to_firebase_token = $to_user_result[0]['firebase_token'];
+            $firebase_requester = new FirebaseRequester(new HttpRequester());
+            $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+            $this->query->commit_transaction();
         } else {
             // TODO: 예외 처리 : 팔로우가 없는 경우
             $this->query->delete_follow($from_user_idx, $to_user_idx);
         }
 
         // TODO: followers, followings 이런 거는 ArrayList에서 자주 사용하는 용어여서 개수를 셀 때는 그냥 뒤에 count를 붙여주는게 좋을 거 같음 (나중에 수정하기)
-        $follower_count = $this->query->select_follower_count($to_user_idx);
-        $following_count = $this->query->select_following_count($to_user_idx);
+        $follower_count = $this->query->select_follower_count($idx);
+        $following_count = $this->query->select_following_count($idx);
 
         return [
             'result' => $this->success_result,
@@ -235,7 +252,7 @@ class ProfileModel extends Model
         return $square_posts;
     }
 
-    private function make_followings_items(array $followings_result): array
+    private function make_followings_items(array $followings_result, int $user_idx): array
     {
         $followings = [];
 
@@ -243,7 +260,9 @@ class ProfileModel extends Model
             $follow_idx = (int)$followings_item_result['follow_idx'];
             $from_user_idx = (int)$followings_item_result['from_user_idx']; // ex) 나의 팔로잉 목록을 들어가는거면 이건 "나의 인덱스"가 되어야함
             $to_user_idx = (int)$followings_item_result['to_user_idx']; // ex) 나의 팔로잉 목록을 들어가는거면 이건 "상대방의 인덱스"가 되어야함
+            // TODO: from_user_idx : 해당 목록의 주인, user_idx : 해당 목록을 보는 사람 - 그러니까 is_follow는 해당 목록을 보는 사람을 기준으로 해야함
             $followings_item['follow_idx'] = $follow_idx;
+            $followings_item['user_idx'] = $user_idx;
             $followings_item['from_user_idx'] = $from_user_idx;
             $followings_item['to_user_idx'] = $to_user_idx;
             // 내가 팔로우 하는 사람들의 정보를 가져와야하므로 to_user_idx로 쿼리
@@ -251,7 +270,7 @@ class ProfileModel extends Model
             $followings_item['name'] = $user_result[0]['name'];
             $followings_item['profile_image_url'] = $user_result[0]['profile_image_url'];
             // 내가 상대방을 팔로우 하는 지 체크 (무조건 true로 나와야함)
-            $user_follow_result = $this->query->select_follow($from_user_idx, $to_user_idx);
+            $user_follow_result = $this->query->select_follow($user_idx, $to_user_idx);
             $is_follow = false; // 팔로우 했는지 여부 (default - false)
             if (!empty($user_follow_result))  $is_follow = true; // 쿼리 결과 사용자가 팔로우 했다면 $is_follow를 true로 변경
             $followings_item['is_follow'] = $is_follow;
@@ -264,7 +283,7 @@ class ProfileModel extends Model
         return $followings;
     }
 
-    private function make_followers_items(array $followers_result): array
+    private function make_followers_items(array $followers_result, int $user_idx): array
     {
         $followers = [];
 
@@ -272,7 +291,10 @@ class ProfileModel extends Model
             $follow_idx = (int)$followers_item_result['follow_idx'];
             $from_user_idx = (int)$followers_item_result['from_user_idx']; // ex) 나의 팔로워 목록을 들어가는거면 이건 "상대방의 인덱스"가 되어야함
             $to_user_idx = (int)$followers_item_result['to_user_idx']; // ex) 나의 팔로워 목록을 들어가는거면 이건 "나의 인덱스"가 되어야함
+            // TODO: from_user_idx : 해당 목록의 주인
+            // TODO user_idx : 해당 목록을 보는 사람 - 그러니까 is_follow는 해당 목록을 보는 사람을 기준으로 해야함
             $followers_item['follow_idx'] = $follow_idx;
+            $followers_item['user_idx'] = $user_idx;
             $followers_item['from_user_idx'] = $from_user_idx;
             $followers_item['to_user_idx'] = $to_user_idx;
             // 나를 팔로우하는 사람들의 정보를 가져와야하므로 from_user_idx로 쿼리
@@ -280,7 +302,7 @@ class ProfileModel extends Model
             $followers_item['name'] = $user_result[0]['name'];
             $followers_item['profile_image_url'] = $user_result[0]['profile_image_url'];
             // 나를 팔로우 하는 사람이 나를 팔로우 하는 지 체크, true, false 섞여서 나와도 됨
-            $user_follow_result = $this->query->select_follow($from_user_idx, $to_user_idx);
+            $user_follow_result = $this->query->select_follow($user_idx, $from_user_idx);
             $is_follow = false; // 팔로우 했는지 여부 (default - false)
             if (!empty($user_follow_result))  $is_follow = true; // 쿼리 결과 사용자가 팔로우 했다면 $is_follow를 true로 변경
             $followers_item['is_follow'] = $is_follow;

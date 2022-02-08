@@ -15,6 +15,9 @@ $router->post('/signin/:type(general|auto)', 'User@signin');
 // 로그아웃
 $router->delete('/signout', 'User@signout');
 
+// 파이어베이스 토큰 업로드
+$router->post('/firebase', 'User@firebase');
+
 /** ------------ @category 2. 게시글, 댓글 ------------ */
 // 게시글, 댓글 리스트 가져오기 (무한 스크롤링 or 1개) - TODO: 게시글의 경우 팔로우한 사람 게시글만 가져오게 변경하기
 $router->get('/read/:type(posts|post|comments|comment)', 'Board@read');
@@ -32,10 +35,8 @@ $router->put('/update/like', 'Board@update_like');
 $router->get('/read/search/:type(users|posts)', 'Search@read');
 
 /** ------------ @category 2. 알림 탭 관련 ------------ */
-// TODO: 알림 추가(?)
-
 // TODO: 알림 가져오기 (무한 스크롤링)
-
+$router->get('/read/:type(notifications)', 'Notification@read');
 /** ------------ @category 4. 마이페이지 ------------ */
 // 프로필 가져오기 (1개), 프로필 페이지 작성한 게시글 가져오기 (무한 스크롤링)
 $router->get('/read/profile/:type(info|posts)', 'Profile@read');

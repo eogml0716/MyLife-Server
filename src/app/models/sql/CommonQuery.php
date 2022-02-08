@@ -73,10 +73,37 @@ class CommonQuery extends Query
         return $this->select_by_operator($this->user_table, $this->none, ['*'], $conditions);
     }
 
-    // (?) 내가 팔로잉한 사람이 게시글 리스트 가져오기 - create_date 기준 정렬 TODO: 현재 구현 중, 에러 터질 수 있음
-    public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx): array
+//    // (?) 내가 팔로잉한 사람이 게시글 리스트 가져오기 - create_date 기준 정렬 TODO: 현재 구현 중, 에러 터질 수 있음
+//    public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx): array
+//    {
+//        $sql_statement = "SELECT * FROM board INNER JOIN follow ON board.user_idx = follow.to_user_idx WHERE follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
+////        echo $sql_statement;
+//        return $this->fetch_query_data($sql_statement);
+//    }
+
+    // (?) 내가 팔로잉한 사람 + 내가 작성한 게시글 리스트 가져오기 - create_date 기준 정렬 TODO: 현재 구현 중, 에러 터질 수 있음
+//    public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx, int $following_count): array
+//    {
+//        // TODO: 임시 조치, SQL문 1개로 바꿔볼 것
+//        if ($following_count == 0) {
+//            $sql_statement = "SELECT * FROM board WHERE user_idx = '{$user_idx}' AND delete_date IS NULL AND delete_date IS NULL ORDER BY create_date DESC LIMIT {$limit} OFFSET {$start_num}";
+//        } else {
+//            $sql_statement = "SELECT * FROM board LEFT JOIN follow ON board.user_idx = follow.to_user_idx OR board.user_idx = '{$user_idx}'
+//WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL) ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
+//        }
+////        echo $sql_statement;
+//        return $this->fetch_query_data($sql_statement);
+//    }
+
+    public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx, int $following_count): array
     {
-        $sql_statement = "SELECT * FROM board INNER JOIN follow ON board.user_idx = follow.to_user_idx WHERE follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
+        // TODO: 임시 조치, SQL문 1개로 바꿔볼 것, JOIN을 했을 때 2개의 테이블의 컬럼 이름이 겹치게 되면 어떤 컬럼 가져와줄지 지정해주지 않으면 임의로 내부에서 테이블 1개 정해서 그 컬럼의 값을 가져옴
+        if ($following_count == 0) {
+            $sql_statement = "SELECT * FROM board WHERE user_idx = '{$user_idx}' AND delete_date IS NULL AND delete_date IS NULL ORDER BY create_date DESC LIMIT {$limit} OFFSET {$start_num}";
+        } else {
+            $sql_statement = "SELECT board.board_idx, board.user_idx, board.contents, board.likes, board.comments, board.create_date, board.update_date FROM board LEFT JOIN follow ON board.user_idx = follow.to_user_idx OR board.user_idx = '{$user_idx}'
+WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL) ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
+        }
 //        echo $sql_statement;
         return $this->fetch_query_data($sql_statement);
     }
@@ -124,6 +151,14 @@ class CommonQuery extends Query
         return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
     }
 
+    public function select_notifications_order_by_create_date(string $table_name, int $limit, int $start_num, int $to_user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $to_user_idx_condition = $this->make_relational_conditions($this->equal, ['to_user_idx' => $to_user_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $to_user_idx_condition);
+        return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
+    }
+
     public function select_board_by_board_idx(int $board_idx): array
     {
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
@@ -148,6 +183,14 @@ class CommonQuery extends Query
         return $this->select_by_operator($this->comment_table, $this->none, ['*'], $conditions);
     }
 
+    public function select_liked_by_liked_idx(int $liked_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $liked_idx_condition = $this->make_relational_conditions($this->equal, ['liked_idx' => $liked_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $liked_idx_condition);
+        return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
+    }
+
     public function select_liked(int $user_idx, string $type, int $idx): array
     {
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
@@ -158,6 +201,17 @@ class CommonQuery extends Query
         ]);
         $conditions = $this->combine_conditions($not_delete_condition, $condition);
         return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_duplicated_token(int $user_idx, string $token)
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'user_idx' => $user_idx,
+            'firebase_token' => $token
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->user_table, $this->none, ['*'], $conditions);
     }
 
     // TODO: 그냥 like_count라고 이름을 지을 걸 그랬나 되게 불편하네
@@ -202,6 +256,15 @@ class CommonQuery extends Query
         $conditions = $this->combine_conditions($not_delete_condition, $condition);
         return $this->select_by_operator($this->follow_table, $this->none, ['*'], $conditions);
     }
+
+    public function select_follow_by_to_user_idx(int $to_user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $to_user_idx_condition = $this->make_relational_conditions($this->equal, ['to_user_idx' => $to_user_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $to_user_idx_condition);
+        return $this->select_by_operator($this->follow_table, $this->none, ['*'], $conditions);
+    }
+
 
     public function select_follower_count(int $to_user_idx)
     {
@@ -319,6 +382,24 @@ class CommonQuery extends Query
         ]);
     }
 
+    public function insert_notification(
+        int $from_user_idx,
+        int $to_user_idx,
+        string $notification_type,
+        string $contents,
+        string $table_type,
+        int $idx
+    ): void {
+        $this->insert_data($this->notification_table, [
+            'from_user_idx' => $from_user_idx,
+            'to_user_idx' => $to_user_idx,
+            'notification_type' => $notification_type,
+            'contents' => $contents,
+            'table_type' => $table_type,
+            'idx' => $idx
+        ]);
+    }
+
     /** ------------ @category ?. UPDATE ------------ */
     /**
      * (?) 세션 아이디 갱신
@@ -406,6 +487,12 @@ class CommonQuery extends Query
         $this->update_by_operator($this->user_table, $column_condition, $update_conditions);
     }
 
+    public function update_firebase_token(int $user_idx, string $firebase_token)
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
+        $update_condition = $this->make_relational_conditions($this->equal, ['firebase_token' => $firebase_token]);
+        $this->update_by_operator($this->user_table, $condition, $update_condition);
+    }
     /** ------------ @category ?. DELETE ------------ */
     /**
      * (?) TODO:  로그아웃

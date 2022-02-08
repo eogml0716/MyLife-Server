@@ -2,8 +2,10 @@
 
 namespace MyLifeServer\app\models;
 
+use MyLifeServer\app\utils\FirebaseRequester;
 use MyLifeServer\app\ConfigManager;
 use MyLifeServer\app\models\sql\CommonQuery;
+use MyLifeServer\core\model\HttpRequester;
 use MyLifeServer\core\model\Model;
 use MyLifeServer\core\utils\ResponseHelper;
 
@@ -29,20 +31,21 @@ class BoardModel extends Model
     // 내가 팔로잉한 사람의 게시글 리스트 가져오기 (무한 스크롤링)
     public function read_posts(array $client_data): array
     {
-        $this->check_user_session($client_data);
-        // TODO: 팔로잉한 사람들 게시글만 가져올 수 있게 커스터마이징 해야함
+//        $user_idx = $this->check_user_session($client_data);
         $user_idx = $this->check_int_data($client_data, 'user_idx');
+        // TODO: 팔로잉한 사람들 게시글만 가져올 수 있게 커스터마이징 해야함
         $page = $this->check_int_data($client_data, 'page');
         $limit = $this->check_int_data($client_data, 'limit');
         $start_num = ($page - 1) * $limit; // 요청하는 페이지에 시작 번호
         $is_last = false;
 
-        $posts_result = $this->query->select_items_order_by_create_date($limit, $start_num, $user_idx);
+        $following_count = $this->query->select_following_count($user_idx);
+        $posts_result = $this->query->select_items_order_by_create_date($limit, $start_num, $user_idx, $following_count);
 
         if (empty($posts_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
         if (count($posts_result) < $limit) $is_last = true;
 
-        $posts = $this->make_post_items($posts_result);
+        $posts = $this->make_post_items($posts_result, $user_idx);
 
         return [
             'result' => $this->success_result,
@@ -54,7 +57,7 @@ class BoardModel extends Model
     // 댓글 리스트 가져오기 (무한 스크롤링)
     public function read_comments(array $client_data): array
     {
-        $this->check_user_session($client_data);
+        $user_idx = $this->check_user_session($client_data);
 
         $page = $this->check_int_data($client_data, 'page');
         $limit = $this->check_int_data($client_data, 'limit');
@@ -68,7 +71,7 @@ class BoardModel extends Model
         if (empty($comments_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
         if (count($comments_result) < $limit) $is_last = true;
 
-        $comments = $this->make_comment_items($comments_result);
+        $comments = $this->make_comment_items($comments_result, $user_idx);
 
         return [
             'result' => $this->success_result,
@@ -80,9 +83,8 @@ class BoardModel extends Model
     // 게시글 가져오기 (1개)
     public function read_post(array $client_data): array
     {
-        $this->check_user_session($client_data);
+        $user_idx= $this->check_user_session($client_data);
 
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $board_idx = $this->check_int_data($client_data, 'board_idx');
 
         $user_result = $this->query->select_user_by_user_idx($user_idx);
@@ -131,8 +133,7 @@ class BoardModel extends Model
     // 게시글 추가
     public function create_post(array $client_data): array
     {
-        $this->check_user_session($client_data);
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
+        $user_idx = $this->check_user_session($client_data);
         $image = $this->check_string_data($client_data, 'image');
         $image_name = $this->check_string_data($client_data, 'image_name');
         $contents = $this->check_string_data($client_data, 'contents');
@@ -147,6 +148,35 @@ class BoardModel extends Model
         $this->query->insert_board($user_idx, $contents);
         $board_idx = $this->query->select_inserted_id();
         $this->query->insert_board_image($board_idx, $image_url);
+
+        $board_result = $this->query->select_board_by_board_idx($board_idx);
+        $db_user_idx = $board_result[0]['user_idx'];
+
+        $follow_result = $this->query->select_follow_by_to_user_idx($db_user_idx);
+
+        // TODO: foreach문과, for문 중에서 어느 것이 더 퍼포먼스적으로 우위에 있을까?
+        for ($index = 0; $index < count($follow_result); $index++) {
+            $from_user_idx = $user_idx;
+            $to_user_idx = $follow_result[$index]['from_user_idx'];
+
+            if ($from_user_idx != $to_user_idx) {
+                $from_user_result = $this->query->select_user_by_user_idx($from_user_idx);
+                $to_user_result = $this->query->select_user_by_user_idx($to_user_idx);
+
+                $from_name = $from_user_result[0]['name'];
+                $to_name = $to_user_result[0]['name'];
+
+                $notification_type = "NEW_POST";
+                $contents = "{$to_name}님이 팔로우 하시는 {$from_name}님이 게시글을 업로드 하였습니다.";
+                $table_type = $this->query->board_table;
+                $idx = $board_idx;
+
+                $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
+                $to_firebase_token = $to_user_result[0]['firebase_token'];
+                $firebase_requester = new FirebaseRequester(new HttpRequester());
+                $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+            }
+        }
         $this->query->commit_transaction();
 
         return [
@@ -157,8 +187,7 @@ class BoardModel extends Model
     // 댓글 추가 TODO: 댓글 수정쪽 리사이클러뷰 구현 방식이 바뀌게 되면 return 값이라든가 구현 방식이 바뀔 수 있음
     public function create_comment(array $client_data): array
     {
-        $this->check_user_session($client_data);
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
+        $user_idx = $this->check_user_session($client_data);
         $board_idx = $this->check_int_data($client_data, 'board_idx');
         $contents = $this->check_string_data($client_data, 'contents');
 
@@ -171,6 +200,29 @@ class BoardModel extends Model
         $this->query->insert_comment($user_idx, $board_idx, $contents);
         $comment_count = $this->query->select_comment_count($board_idx);
         $this->query->update_comment_count('board', $board_idx, $comment_count);
+        // 내 게시글에 댓글이 달렸을 때 (여기서 "나"는 현재 로그인 해서 이용 중인 유저를 꼭 가리키는 게 아님), TODO: FCM 처리하기
+        $board_result = $this->query->select_board_by_board_idx($board_idx);
+
+        $from_user_idx = $user_idx;
+        $to_user_idx = $board_result[0]['user_idx'];
+
+        if ($from_user_idx != $to_user_idx) {
+            $from_user_result = $this->query->select_user_by_user_idx($from_user_idx);
+            $to_user_result = $this->query->select_user_by_user_idx($to_user_idx);
+
+            $from_name = $from_user_result[0]['name'];
+            $to_name = $to_user_result[0]['name'];
+
+            $notification_type = "NEW_COMMENT";
+            $contents = "{$from_name}님이 {$to_name}님의 게시글에 댓글을 남겼습니다.";
+            $table_type = $this->query->board_table;
+            $idx = $board_idx;
+
+            $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
+            $to_firebase_token = $to_user_result[0]['firebase_token'];
+            $firebase_requester = new FirebaseRequester(new HttpRequester());
+            $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+        }
         $this->query->commit_transaction();
 
         return [
@@ -181,10 +233,9 @@ class BoardModel extends Model
     // 게시글 수정
     public function update_post(array $client_data): array
     {
-        $this->check_user_session($client_data);
+        $user_idx = $this->check_user_session($client_data);
 
         $board_idx = $this->check_int_data($client_data, 'board_idx');
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $image = $this->check_string_data($client_data, 'image');
         $image_name = $this->check_string_data($client_data, 'image_name');
         $contents = $this->check_string_data($client_data, 'contents');
@@ -220,9 +271,8 @@ class BoardModel extends Model
     // 댓글 수정, TODO: 댓글 수정쪽 리사이클러뷰 구현 방식이 바뀌게 되면 return 값이라든가 구현 방식이 바뀔 수 있음
     public function update_comment(array $client_data): array
     {
-        $this->check_user_session($client_data);
+        $user_idx = $this->check_user_session($client_data);
 
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $board_idx = $this->check_int_data($client_data, 'board_idx');
         $comment_idx = $this->check_int_data($client_data, 'comment_idx');
         $contents = $this->check_string_data($client_data, 'contents');
@@ -248,9 +298,7 @@ class BoardModel extends Model
     // 게시글 삭제
     public function delete_post(array $client_data): array
     {
-        $this->check_user_session($client_data);
-
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
+        $user_idx = $this->check_user_session($client_data);
         $board_idx = $this->check_int_data($client_data, 'board_idx');
 
         $user_result = $this->query->select_user_by_user_idx($user_idx);
@@ -276,9 +324,8 @@ class BoardModel extends Model
     // 댓글 삭제
     public function delete_comment(array $client_data): array
     {
-        $this->check_user_session($client_data);
+        $user_idx = $this->check_user_session($client_data);
 
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $comment_idx = $this->check_int_data($client_data, 'comment_idx');
 
         // 예외 처리 : 해당 글을 작성한 유저의 인덱스 값과 클라이언트로부터 전송된 유저 인덱스 값을 비교 -> 다르면 에러 발생
@@ -304,9 +351,8 @@ class BoardModel extends Model
     // 좋아요
     public function update_like(array $client_data): array
     {
-        $this->check_user_session($client_data);
+        $user_idx = $this->check_user_session($client_data);
 
-        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $type = $this->check_string_data($client_data, 'type');
         $idx = $this->check_int_data($client_data, 'idx');
         $is_like = $this->check_boolean_data($client_data, 'is_like');
@@ -314,19 +360,75 @@ class BoardModel extends Model
         // type 값을 소문자나 대문자 섞어서 오는 경우 방지, (그냥 내가 테스트할 때 에러나면 귀찮음)
         $type_upper = strtoupper($type);
 
-        $this->query->begin_transaction();
         // 좋아요를 누른 상태 -> 좋아요 테이블에 좋아요가 등록되어있지 않음
         if ($is_like) {
             // 예외 처리 : 이미 좋아요가 눌려있는 상태인 경우
             $duplicated_liked_result = $this->query->select_liked($user_idx, $type_upper, $idx);
             if ($duplicated_liked_result) ResponseHelper::get_instance()->error_response(400, 'already pressed like');
 
+            $this->query->begin_transaction();
             $this->query->insert_liked($user_idx, $type_upper, $idx);
-            $operator = '+1';
+            if ($type_upper == 'POST') {
+                // 누군가 내 게시글에 좋아요를 눌렀을 때 (여기서 "나"는 현재 로그인 해서 이용 중인 유저를 꼭 가리키는 게 아님), TODO: FCM 처리하기
+                $liked_idx = $this->query->select_inserted_id();
+                $liked_result = $this->query->select_liked_by_liked_idx($liked_idx);
+
+                $board_idx = $liked_result[0]['idx'];
+                $board_result = $this->query->select_board_by_board_idx($board_idx);
+
+                $from_user_idx = $user_idx;
+                $to_user_idx = $board_result[0]['user_idx'];
+
+                if ($from_user_idx != $to_user_idx) {
+                    $from_user_result = $this->query->select_user_by_user_idx($from_user_idx);
+                    $to_user_result = $this->query->select_user_by_user_idx($to_user_idx);
+
+                    $from_name = $from_user_result[0]['name'];
+                    $to_name = $to_user_result[0]['name'];
+
+                    $notification_type = "NEW_POST_LIKE";
+                    $contents = "{$from_name}님이 {$to_name}님의 게시글에 좋아요를 눌렀습니다.";
+                    $table_type = $this->query->board_table;
+                    $idx = $board_idx;
+
+                    $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
+
+                    $to_firebase_token = $to_user_result[0]['firebase_token'];
+                    $firebase_requester = new FirebaseRequester(new HttpRequester());
+                    $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                }
+            } else if ($type_upper == 'COMMENT') {
+                // 누군가 내 댓글에 좋아요를 눌렀을 때 (여기서 "나"는 현재 로그인 해서 이용 중인 유저를 꼭 가리키는 게 아님), TODO: FCM 처리하기
+                $liked_idx = $this->query->select_inserted_id();
+                $liked_result = $this->query->select_liked_by_liked_idx($liked_idx);
+
+                $comment_idx = $liked_result[0]['idx'];
+                $comment_result = $this->query->select_comment_by_comment_idx($comment_idx);
+
+                $from_user_idx = $user_idx;
+                $to_user_idx = $comment_result[0]['user_idx'];
+
+                if ($from_user_idx != $to_user_idx) {
+                    $from_user_result = $this->query->select_user_by_user_idx($from_user_idx);
+                    $to_user_result = $this->query->select_user_by_user_idx($to_user_idx);
+
+                    $from_name = $from_user_result[0]['name'];
+                    $to_name = $to_user_result[0]['name'];
+
+                    $notification_type = "NEW_COMMENT_LIKE";
+                    $contents = "{$from_name}님이 {$to_name}님의 댓글에 좋아요를 눌렀습니다.";
+                    $table_type = $this->query->comment_table;
+                    $idx = $comment_idx;
+
+                    $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
+                    $to_firebase_token = $to_user_result[0]['firebase_token'];
+                    $firebase_requester = new FirebaseRequester(new HttpRequester());
+                    $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                }
+            }
         } else {
             // TODO: 예외 처리 : 좋아요가 없는 경우
             $this->query->delete_liked($user_idx, $type_upper, $idx);
-            $operator = '-1';
         }
 
         // 좋아요 개수 업데이트
@@ -356,7 +458,7 @@ class BoardModel extends Model
     }
 
     /** ------------ @category ?. 유틸리티 ------------ */
-    private function make_post_items(array $posts_result): array
+    private function make_post_items(array $posts_result, int $my_user_idx): array
     {
         $posts = [];
 
@@ -376,7 +478,7 @@ class BoardModel extends Model
             $post_item['comments'] = (int)$post_item_result['comments'];
 
             // 유저의 게시글 좋아요 boolean값 가져오기
-            $user_like_result = $this->query->select_liked($user_idx, 'POST', $board_idx);
+            $user_like_result = $this->query->select_liked($my_user_idx, 'POST', $board_idx);
             $is_like = false; // 좋아요 했는지 여부 (default - false)
             if (!empty($user_like_result))  $is_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_like true로 변경
             $post_item['is_like'] = $is_like;
@@ -389,7 +491,7 @@ class BoardModel extends Model
         return $posts;
     }
 
-    private function make_comment_items(array $comments_result): array
+    private function make_comment_items(array $comments_result, int $my_user_idx): array
     {
         $comments = [];
 
@@ -409,7 +511,7 @@ class BoardModel extends Model
             $comment_item['likes'] = (int)$comment_item_result['likes'];
 
             // 유저의 게시글 좋아요 boolean값 가져오기
-            $user_like_result = $this->query->select_liked($user_idx, 'COMMENT', $comment_idx);
+            $user_like_result = $this->query->select_liked($my_user_idx, 'COMMENT', $comment_idx);
             $is_like = false; // 좋아요 했는지 여부 (default - false)
             if (!empty($user_like_result))  $is_like = true; // 쿼리 결과 사용자가 좋아요 했다면 $is_user_like true로 변경
             $comment_item['is_like'] = $is_like;

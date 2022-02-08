@@ -24,4 +24,9 @@ class ConfigManager
     {
         return $this->config['database'];
     }
+
+    public function get_firebase_config(): array
+    {
+        return $this->config['firebase'];
+    }
 }

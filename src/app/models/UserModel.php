@@ -35,8 +35,8 @@ class UserModel extends Model
     {
         // 사용자 데이터 받아오기
         $email = $this->check_string_data($client_data, 'email');
-        $password =  $this->check_string_data($client_data, 'password');
-        $name =  $this->check_string_data($client_data, 'name');
+        $password = $this->check_string_data($client_data, 'password');
+        $name = $this->check_string_data($client_data, 'name');
 
         // 예외 처리 : 이미 회원가입이 된 사용자인 경우
         $duplicated_email_result = $this->query->select_user_by_email($email);
@@ -48,8 +48,10 @@ class UserModel extends Model
         // 유저 기본 프로필 이미지
         $profile_image_url = "{$this->server_url}/assets/user/null.png";
 
+        $this->query->begin_transaction();
         $this->query->insert_signup_user($email, $password, $name, $profile_image_url);
-
+        $user_idx = $this->query->select_inserted_id();
+        $this->query->commit_transaction();
         return [
             'result' => $this->success_result
         ];
@@ -173,7 +175,7 @@ class UserModel extends Model
 
     // TODO: (?) 로그인 (카카오)
 
-    // TODO: (?) 로그아웃
+    // (?) 로그아웃
     public function signout(array $client_data): array
     {
         $this->check_user_session($client_data);
@@ -185,6 +187,20 @@ class UserModel extends Model
 
         return [
             'result' => $this->success_result
+        ];
+    }
+
+    // TODO: 유저가 각기 다른 기기로 접속할 경우 계속해서 Firebase token이 변경되고 해당 기기로만 알림이 가게 되므로 따로 테이블을 빼서 관리하는 게 좋을 거 같다.
+    public function upload_firebase_token(array $client_data): array
+    {
+        $user_idx = $this->check_user_session($client_data);
+        $firebase_token = $this->check_string_data($client_data, 'firebase_token');
+
+        $this->query->update_firebase_token($user_idx, $firebase_token);
+
+        return [
+            'result' => $this->success_result,
+            'firebase_token' => $firebase_token
         ];
     }
 

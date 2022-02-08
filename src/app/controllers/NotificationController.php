@@ -18,4 +18,21 @@ class NotificationController extends Controller
     {
         $this->model = $model;
     }
+
+    public function read(string $type): void
+    {
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case $this->get_method:
+                switch ($type) {
+                    case 'notifications':
+                        $response = $this->model->read_notifications($_GET);
+                        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                        break;
+
+                    default:
+                        ResponseHelper::get_instance()->error_response(400, 'wrong parameter type');
+                }
+                break;
+        }
+    }
 }

@@ -80,4 +80,14 @@ class UserController extends Controller
                 break;
         }
     }
+
+    public function firebase(): void
+    {
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case $this->post_method:
+                $response = $this->model->upload_firebase_token($_POST);
+                echo json_encode($response, JSON_UNESCAPED_UNICODE);
+                break;
+        }
+    }
 }
