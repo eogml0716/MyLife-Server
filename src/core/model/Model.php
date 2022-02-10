@@ -20,6 +20,7 @@ class Model
     // 이미지 저장 관련 - 폴더명
     protected $user_image_folder = 'user';
     protected $post_image_folder = 'post';
+    protected $chat_message_image_folder = 'chat_message';
 
     public function __construct(Query $query, ConfigManager $config_manager)
     {

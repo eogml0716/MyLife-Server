@@ -31,6 +31,11 @@ class ProfileModel extends Model
         $user_result = $this->query->select_user_by_user_idx($idx);
         if (empty($user_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent user');
 
+        // 해당 유저와 채팅방이 생성되어있는 지 체크하고 되어있으면 해당 채팅방의 인덱스 값을 return한다,
+        $chat_room_result = $this->query->select_personal_chat_room_by_both_indexes($user_idx, $idx);
+        $chat_room_idx = 0;
+        if (!empty($chat_room_result))  $chat_room_idx = (int)$chat_room_result[0]['chat_room_idx']; // 쿼리 결과 사용자가 팔로우 했다면 $chat_room_idx를 변경
+
         $user_row = $user_result[0];
         $user_idx = (int)$user_row['user_idx'];
         $name = $user_row['name'];
@@ -38,8 +43,8 @@ class ProfileModel extends Model
         $about_me = $user_row['about_me'];
         $post_count = $this->query->select_post_count($idx);
         // TODO: followers, followings 이런 거는 ArrayList에서 자주 사용하는 용어여서 개수를 셀 때는 그냥 뒤에 count를 붙여주는게 좋을 거 같음 (나중에 수정하기)
-        $follower_count = $this->query->select_follower_count($idx);
-        $following_count = $this->query->select_following_count($idx);
+        $follower_count = (int)$this->query->select_follower_count($idx);
+        $following_count = (int)$this->query->select_following_count($idx);
         $user_follow_result = $this->query->select_follow($from_user_idx, $to_user_idx);
         $is_follow = false; // 팔로우 했는지 여부 (default - false)
         if (!empty($user_follow_result))  $is_follow = true; // 쿼리 결과 사용자가 팔로우 했다면 $is_follow를 true로 변경
@@ -53,7 +58,8 @@ class ProfileModel extends Model
             'post_count' => $post_count,
             'follower_count' => $follower_count,
             'following_count' => $following_count,
-            'is_follow' => $is_follow
+            'is_follow' => $is_follow,
+            'chat_room_idx' => $chat_room_idx
         ];
     }
 

@@ -159,6 +159,33 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
     }
 
+    // (?) 채팅방 리스트 가져오기 - create_date 기준 정렬
+    public function select_chat_rooms_order_by_create_date(string $table_name, int $limit, int $start_num, int $user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $user_idx_condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
+        $open_type_condition = $this->make_relational_conditions($this->equal, ['open_type' => 'OPEN']);
+        $conditions = $this->combine_conditions($not_delete_condition, $user_idx_condition, $open_type_condition);
+        return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
+    }
+
+    // 채팅 메시지 리스트 가져오기 -  create_date 기준 정렬
+    public function select_messages_order_by_create_date(string $table_name, int $limit, int $start_num, int $chat_room_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $chat_room_idx_condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $chat_room_idx_condition);
+        return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
+    }
+
+    public function select_message_by_chat_room_idx(int $chat_room_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $chat_room_idx_condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $chat_room_idx_condition);
+        return $this->select_by_operator($this->message_table, $this->none, ['*'], $conditions);
+    }
+
     public function select_board_by_board_idx(int $board_idx): array
     {
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
@@ -189,6 +216,32 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         $liked_idx_condition = $this->make_relational_conditions($this->equal, ['liked_idx' => $liked_idx]);
         $conditions = $this->combine_conditions($not_delete_condition, $liked_idx_condition);
         return $this->select_by_operator($this->liked_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_message_by_message_idx(int $message_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $message_idx_condition = $this->make_relational_conditions($this->equal, ['message_idx' => $message_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $message_idx_condition);
+        return $this->select_by_operator($this->message_table, $this->none, ['*'], $conditions);
+    }
+
+    public function select_chat_room_by_chat_room_idx(int $chat_room_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $chat_room_idx_condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $chat_room_idx_condition);
+        return $this->select_by_operator($this->chat_room_table, $this->none, ['*'], $conditions);
+    }
+
+    // 1:1 채팅방에서 상대 유저의 정보를 가져오기 위한 select문
+    public function select_chat_room_member_by_user_idx_and_not_equal(int $chat_room_idx, int $user_idx): array
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $chat_room_idx_condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
+        $not_equal_user_idx_condition = $this->make_relational_conditions($this->not_equal, ['user_idx' => $user_idx]);
+        $conditions = $this->combine_conditions($not_delete_condition, $chat_room_idx_condition, $not_equal_user_idx_condition);
+        return $this->select_by_operator($this->chat_room_member_table, $this->none, ['*'], $conditions);
     }
 
     public function select_liked(int $user_idx, string $type, int $idx): array
@@ -246,6 +299,16 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         return $this->select_by_operator($this->comment_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
     }
 
+    public function select_chat_room_member_count(int $chat_room_idx): int
+    {
+        $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
+        $condition = $this->make_relational_conditions($this->equal, [
+            'chat_room_idx' => $chat_room_idx
+        ]);
+        $conditions = $this->combine_conditions($not_delete_condition, $condition);
+        return $this->select_by_operator($this->chat_room_member_table, $this->none, [$this->count_method], $conditions)[0][$this->count_method];
+    }
+
     public function select_follow(int $from_user_idx, int $to_user_idx): array
     {
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
@@ -264,7 +327,6 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         $conditions = $this->combine_conditions($not_delete_condition, $to_user_idx_condition);
         return $this->select_by_operator($this->follow_table, $this->none, ['*'], $conditions);
     }
-
 
     public function select_follower_count(int $to_user_idx)
     {
@@ -294,6 +356,13 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         ]);
         $conditions = $this->combine_conditions($not_delete_condition, $condition);
         return $this->select_page_by_operator($table_name, ['*'], $conditions, 'create_date', $limit, $start_num);
+    }
+
+    public function select_personal_chat_room_by_both_indexes(int $user_idx, int $other_user_idx): array
+    {
+        // TODO: 이거 SQL문 분석하기, 잘 동작하는데 세부적으로 뜯어볼 것
+        $sql_statement = "SELECT chat_room_idx FROM chat_room_member WHERE user_idx IN ('{$user_idx}', '{$other_user_idx}') AND type = 'PERSONAL_GENERAL' AND delete_date IS NULL GROUP BY chat_room_idx HAVING COUNT(DISTINCT user_idx) = 2";
+        return $this->fetch_query_data($sql_statement);
     }
 
     /** ------------ @category ?. CREATE ------------ */
@@ -400,6 +469,40 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         ]);
     }
 
+    public function insert_chat_room (
+        string $type
+    ): void {
+        $this->insert_data($this->chat_room_table, [
+            'type' => $type,
+        ]);
+    }
+
+    public function insert_chat_room_member (
+        int $chat_room_idx,
+        int $user_idx,
+        string $type
+    ): void {
+        $this->insert_data($this->chat_room_member_table, [
+            'chat_room_idx' => $chat_room_idx,
+            'user_idx' => $user_idx,
+            'type' => $type
+        ]);
+    }
+
+    public function insert_message (
+        int $chat_room_idx,
+        int $user_idx,
+        string $message_type,
+        string $contents
+    ): void {
+        $this->insert_data($this->message_table, [
+            'chat_room_idx' => $chat_room_idx,
+            'user_idx' => $user_idx,
+            'message_type' => $message_type,
+            'contents' => $contents
+        ]);
+    }
+
     /** ------------ @category ?. UPDATE ------------ */
     /**
      * (?) 세션 아이디 갱신
@@ -493,6 +596,23 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         $update_condition = $this->make_relational_conditions($this->equal, ['firebase_token' => $firebase_token]);
         $this->update_by_operator($this->user_table, $condition, $update_condition);
     }
+
+    // 채팅방 오픈 타입을 CLOSE -> OPEN으로 변경해준다.
+    public function update_chat_room_open_type_close_to_open(int $chat_room_idx)
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
+        $update_condition = $this->make_relational_conditions($this->equal, ['open_type' => 'OPEN']);
+        $this->update_by_operator($this->chat_room_table, $condition, $update_condition);
+    }
+
+    // 채팅방 오픈 타입을 OPEN -> CLOSE로 변경해준다.
+    public function update_chat_room_open_type_open_to_close(int $chat_room_idx)
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
+        $update_condition = $this->make_relational_conditions($this->equal, ['open_type' => 'CLOSE']);
+        $this->update_by_operator($this->user_table, $condition, $update_condition);
+    }
+
     /** ------------ @category ?. DELETE ------------ */
     /**
      * (?) TODO:  로그아웃

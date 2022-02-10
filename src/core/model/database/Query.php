@@ -16,6 +16,9 @@ class Query extends QueryBuilder
     public $liked_table = 'liked';
     public $follow_table = 'follow';
     public $notification_table = 'notification';
+    public $chat_room_table = 'chat_room';
+    public $message_table = 'message';
+    public $chat_room_member_table = 'chat_room_member';
 
     public function __construct(array $db_config)
     {

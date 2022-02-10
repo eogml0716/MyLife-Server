@@ -11,11 +11,13 @@ use MyLifeServer\app\controllers\BoardController;
 use MyLifeServer\app\controllers\SearchController;
 use MyLifeServer\app\controllers\NotificationController;
 use MyLifeServer\app\controllers\ProfileController;
+use MyLifeServer\app\controllers\ChatController;
 use MyLifeServer\app\models\UserModel;
 use MyLifeServer\app\models\BoardModel;
 use MyLifeServer\app\models\SearchModel;
 use MyLifeServer\app\models\NotificationModel;
 use MyLifeServer\app\models\ProfileModel;
+use MyLifeServer\app\models\ChatModel;
 use MyLifeServer\app\models\sql\CommonQuery;
 
 class MainControllerFactory implements ControllerFactory
@@ -45,6 +47,10 @@ class MainControllerFactory implements ControllerFactory
 
             case 'Profile':
                 $controller = new ProfileController(new ProfileModel(new CommonQuery($db_config), $config_manager));
+                break;
+
+            case 'Chat':
+                $controller = new ChatController(new ChatModel(new CommonQuery($db_config), $config_manager));
                 break;
 
             default:

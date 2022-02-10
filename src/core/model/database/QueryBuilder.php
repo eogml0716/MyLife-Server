@@ -31,7 +31,7 @@ class QueryBuilder extends DbConnector
     protected $count_method = 'count(*)';
     // 관계연산자 모음
     protected $equal = '=';
-    protected $inequal = '!=';
+    protected $not_equal = '!=';
     protected $greater_than = '>';
     protected $less_than = '<';
     protected $self_add = '+=';

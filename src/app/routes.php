@@ -47,4 +47,18 @@ $router->get('/read/follow/:type(followings|followers)', 'Profile@read_follow');
 // 팔로우, 언팔로우 - 좋아요랑 구현 방식이 비슷할 거 같은데
 $router->put('/update/profile/follow', 'Profile@update_follow');
 
+/** ------------ @category 4. 채팅 관련 ------------ */
+/**
+ * 채팅방 목록 불러오기 (무한 스크롤링), 채팅방 정보 불러오기
+ * 채팅 메시지 목록(?) 불러오기 (무한 스크롤링(?)) - TODO: 근데 이건 위로 무한 스크롤링인데 안드로이드에서 위로 스크롤링하면 최신께 역순으로(?) 나오는 식으로 해야할 듯, 일단 기능 완성시키고 1순위로 고치기
+ */
+$router->get('/read/chat/:type(info|rooms|messages)', 'Chat@read');
+// 채팅방 만들기, 텍스트 메시지 저장하기, 이미지 메시지 저장하기
+$router->post('/create/chat/:type(personal_room|text_message|image_message)', 'Chat@create');
+/**
+ * TODO: 채팅방 나가기
+ * TODO: 1:1 채팅방 openType 바꾸기, 근데 채팅방을 나가게 되면 기존 채팅내역도 다 삭제를 해주어야하는데 그냥 단순 삭제 해버리면, 안 나간 사람도 나간 사람의 채팅이 삭제되게 되는건데 이거 어떻게 처리할 지도 생각해보기
+ */
+$router->delete('/delete/chat/:type(personal_room)', 'Chat@delete');
+
 return $router; // 경로를 추가한 라우터 객체 반환
