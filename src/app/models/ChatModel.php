@@ -70,19 +70,20 @@ class ChatModel extends Model
 
     public function read_rooms(array $client_data): array
     {
-        $user_idx = $this->check_user_session($client_data);
+//        $user_idx = $this->check_user_session($client_data);
+        $user_idx = $this->check_int_data($client_data, 'user_idx');
         $page = $this->check_int_data($client_data, 'page');
         $limit = $this->check_int_data($client_data, 'limit');
-        $table_name = $this->query->chat_room_table;
+        $table_name = $this->query->chat_room_member_table;
         $start_num = ($page - 1) * $limit; // 요청하는 페이지에 시작 번호
         $is_last = false;
 
-        $chat_rooms_result = $this->query->select_chat_rooms_order_by_create_date($table_name, $limit, $start_num, $user_idx);
+        $chat_room_members_result = $this->query->select_chat_rooms_order_by_create_date($table_name, $limit, $start_num, $user_idx);
 
-        if (empty($chat_rooms_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
-        if (count($chat_rooms_result) < $limit) $is_last = true;
+        if (empty($chat_room_members_result)) ResponseHelper::get_instance()->error_response(204, 'no item');
+        if (count($chat_room_members_result) < $limit) $is_last = true;
 
-        $chat_rooms = $this->make_chat_rooms_items($chat_rooms_result, $user_idx);
+        $chat_rooms = $this->make_chat_rooms_items($chat_room_members_result, $user_idx);
 
         return [
             'result' => $this->success_result,
@@ -178,6 +179,7 @@ class ChatModel extends Model
         $user_result = $this->query->select_user_by_user_idx($user_idx);
         if (empty($user_result)) ResponseHelper::get_instance()->error_response(204, 'non-existent user');
 
+        $this->query->begin_transaction();
         $message_type = 'TEXT';
         $this->query->insert_message($chat_room_idx, $user_idx, $message_type, $contents);
 
@@ -194,6 +196,9 @@ class ChatModel extends Model
         $create_date = $message_row['create_date'];
         $update_date = $message_row['update_date'];
 
+        $this->query->update_chat_room_last_message($chat_room_idx, $contents, $create_date);
+
+        $this->query->commit_transaction();
 
         return [
             'result' => $this->success_result,
@@ -223,6 +228,7 @@ class ChatModel extends Model
         // 이미지 서버에 저장
         $image_url = $this->store_image($image, $image_name, $this->chat_message_image_folder);
 
+        $this->query->begin_transaction();
         $this->query->insert_message($chat_room_idx, $user_idx, $message_type, $image_url);
 
         $message_idx = $this->query->select_inserted_id();
@@ -237,6 +243,9 @@ class ChatModel extends Model
         $contents = $message_row['contents'];
         $create_date = $message_row['create_date'];
         $update_date = $message_row['update_date'];
+
+        $this->query->update_chat_room_last_message($chat_room_idx, $message_type, $create_date);
+        $this->query->commit_transaction();
 
         return [
             'result' => $this->success_result,
@@ -271,35 +280,40 @@ class ChatModel extends Model
 
         foreach ($chat_rooms_result as $chat_rooms_item_result) {
             $chat_room_idx = (int)$chat_rooms_item_result['chat_room_idx'];
-            $type = $chat_rooms_item_result['type'];
+            $chat_room_result = $this->query->select_chat_room_by_chat_room_idx($chat_room_idx);
+            $chat_room_row = $chat_room_result[0];
+            $type = $chat_room_row['type'];
             $chat_rooms_item['chat_room_idx'] = $chat_room_idx;
             $chat_rooms_item['type'] = $type;
-            $chat_rooms_item['open_type'] = $chat_rooms_item_result['open_type'];
+            $open_type = $chat_room_row['open_type'];
+            $chat_rooms_item['open_type'] = $open_type;
 
-            if ($type == 'PERSONAL_GENERAL') {
-                $other_chat_member_result = $this->query->select_chat_room_member_by_user_idx_and_not_equal($chat_room_idx, $user_idx);
-                $other_user_idx = (int)$other_chat_member_result[0]['user_idx'];
-                $other_user_result = $this->query->select_user_by_user_idx($other_user_idx);
-                $other_user_row = $other_user_result[0];
+            if ($open_type == 'OPEN') {
+                if ($type == 'PERSONAL_GENERAL') {
+                    $other_chat_member_result = $this->query->select_chat_room_member_by_user_idx_and_not_equal($chat_room_idx, $user_idx);
+                    $other_user_idx = (int)$other_chat_member_result[0]['user_idx'];
+                    $other_user_result = $this->query->select_user_by_user_idx($other_user_idx);
+                    $other_user_row = $other_user_result[0];
 
-                $chat_rooms_item['chat_room_image_url'] = $other_user_row['profile_image_url'];
-                $chat_rooms_item['chat_room_name'] = $other_user_row['name'];
-            } else if ($type == 'GROUP_GENERAL') {
-                // TODO: 일반 그룹 채팅방 관련 처리
+                    $chat_rooms_item['chat_room_image_url'] = $other_user_row['profile_image_url'];
+                    $chat_rooms_item['chat_room_name'] = $other_user_row['name'];
+                } else if ($type == 'GROUP_GENERAL') {
+                    // TODO: 일반 그룹 채팅방 관련 처리
+                }
+
+                // 채팅방 멤버 수
+                $chat_room_member_count = $this->query->select_chat_room_member_count($chat_room_idx);
+                $chat_rooms_item['chat_room_member_count'] = $chat_room_member_count;
+
+                // 채팅방 마지막 메시지
+                $chat_rooms_item['last_message'] = $chat_room_row['last_message'];
+                // 채팅방 마지막 메시지 시간
+                $chat_rooms_item['last_message_date'] = $chat_room_row['last_message_date'];
+                $chat_rooms_item['create_date'] = $chat_room_row['create_date'];
+                $chat_rooms_item['update_date'] = $chat_room_row['update_date'];
+
+                $chat_rooms[] = $chat_rooms_item;
             }
-
-            // 채팅방 멤버 수
-            $chat_room_member_count = $this->query->select_chat_room_member_count($chat_room_idx);
-            $chat_rooms_item['chat_room_member_count'] = $chat_room_member_count;
-
-            // 채팅방 마지막 메시지
-            $chat_rooms_item['last_message'] = $chat_rooms_item_result['last_message'];
-            // 채팅방 마지막 메시지 시간
-            $chat_rooms_item['last_message_date'] = $chat_rooms_item_result['last_message_date'];
-            $chat_rooms_item['create_date'] = $chat_rooms_item_result['create_date'];
-            $chat_rooms_item['update_date'] = $chat_rooms_item_result['update_date'];
-
-            $chat_rooms[] = $chat_rooms_item;
         }
         return $chat_rooms;
     }

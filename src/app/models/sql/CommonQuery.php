@@ -164,8 +164,7 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
     {
         $not_delete_condition = $this->make_relational_conditions($this->is, ['delete_date' => $this->null], false);
         $user_idx_condition = $this->make_relational_conditions($this->equal, ['user_idx' => $user_idx]);
-        $open_type_condition = $this->make_relational_conditions($this->equal, ['open_type' => 'OPEN']);
-        $conditions = $this->combine_conditions($not_delete_condition, $user_idx_condition, $open_type_condition);
+        $conditions = $this->combine_conditions($not_delete_condition, $user_idx_condition);
         return $this->select_page_by_operator($table_name, ['*'], $conditions,'create_date', $limit, $start_num);
     }
 
@@ -611,6 +610,16 @@ WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND
         $condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
         $update_condition = $this->make_relational_conditions($this->equal, ['open_type' => 'CLOSE']);
         $this->update_by_operator($this->user_table, $condition, $update_condition);
+    }
+
+    public function update_chat_room_last_message(int $chat_room_idx, string $last_message, string $last_message_date)
+    {
+        $condition = $this->make_relational_conditions($this->equal, ['chat_room_idx' => $chat_room_idx]);
+        $update_condition = $this->make_relational_conditions($this->equal, [
+            'last_message' => $last_message,
+            'last_message_date'=> $last_message_date
+        ]);
+        $this->update_by_operator($this->chat_room_table, $condition, $update_condition);
     }
 
     /** ------------ @category ?. DELETE ------------ */
