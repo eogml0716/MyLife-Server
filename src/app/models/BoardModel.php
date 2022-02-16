@@ -173,8 +173,10 @@ class BoardModel extends Model
 
                 $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
                 $to_firebase_token = $to_user_result[0]['firebase_token'];
-                $firebase_requester = new FirebaseRequester(new HttpRequester());
-                $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                if (!empty($to_firebase_token)) {
+                    $firebase_requester = new FirebaseRequester(new HttpRequester());
+                    $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                }
             }
         }
         $this->query->commit_transaction();
@@ -220,8 +222,10 @@ class BoardModel extends Model
 
             $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
             $to_firebase_token = $to_user_result[0]['firebase_token'];
-            $firebase_requester = new FirebaseRequester(new HttpRequester());
-            $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+            if (!empty($to_firebase_token)) {
+                $firebase_requester = new FirebaseRequester(new HttpRequester());
+                $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+            }
         }
         $this->query->commit_transaction();
 
@@ -394,8 +398,10 @@ class BoardModel extends Model
                     $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
 
                     $to_firebase_token = $to_user_result[0]['firebase_token'];
-                    $firebase_requester = new FirebaseRequester(new HttpRequester());
-                    $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                    if (!empty($to_firebase_token)) {
+                        $firebase_requester = new FirebaseRequester(new HttpRequester());
+                        $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                    }
                 }
             } else if ($type_upper == 'COMMENT') {
                 // 누군가 내 댓글에 좋아요를 눌렀을 때 (여기서 "나"는 현재 로그인 해서 이용 중인 유저를 꼭 가리키는 게 아님), TODO: FCM 처리하기
@@ -422,8 +428,10 @@ class BoardModel extends Model
 
                     $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
                     $to_firebase_token = $to_user_result[0]['firebase_token'];
-                    $firebase_requester = new FirebaseRequester(new HttpRequester());
-                    $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                    if (!empty($to_firebase_token)) {
+                        $firebase_requester = new FirebaseRequester(new HttpRequester());
+                        $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+                    }
                 }
             }
         } else {
