@@ -73,35 +73,14 @@ class CommonQuery extends Query
         return $this->select_by_operator($this->user_table, $this->none, ['*'], $conditions);
     }
 
-//    // (?) 내가 팔로잉한 사람이 게시글 리스트 가져오기 - create_date 기준 정렬 TODO: 현재 구현 중, 에러 터질 수 있음
-//    public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx): array
-//    {
-//        $sql_statement = "SELECT * FROM board INNER JOIN follow ON board.user_idx = follow.to_user_idx WHERE follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
-////        echo $sql_statement;
-//        return $this->fetch_query_data($sql_statement);
-//    }
-
     // (?) 내가 팔로잉한 사람 + 내가 작성한 게시글 리스트 가져오기 - create_date 기준 정렬 TODO: 현재 구현 중, 에러 터질 수 있음
-//    public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx, int $following_count): array
-//    {
-//        // TODO: 임시 조치, SQL문 1개로 바꿔볼 것
-//        if ($following_count == 0) {
-//            $sql_statement = "SELECT * FROM board WHERE user_idx = '{$user_idx}' AND delete_date IS NULL AND delete_date IS NULL ORDER BY create_date DESC LIMIT {$limit} OFFSET {$start_num}";
-//        } else {
-//            $sql_statement = "SELECT * FROM board LEFT JOIN follow ON board.user_idx = follow.to_user_idx OR board.user_idx = '{$user_idx}'
-//WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL) ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
-//        }
-////        echo $sql_statement;
-//        return $this->fetch_query_data($sql_statement);
-//    }
-
     public function select_items_order_by_create_date(int $limit, int $start_num, int $user_idx, int $following_count): array
     {
         // TODO: 임시 조치, SQL문 1개로 바꿔볼 것, JOIN을 했을 때 2개의 테이블의 컬럼 이름이 겹치게 되면 어떤 컬럼 가져와줄지 지정해주지 않으면 임의로 내부에서 테이블 1개 정해서 그 컬럼의 값을 가져옴
         if ($following_count == 0) {
             $sql_statement = "SELECT * FROM board WHERE user_idx = '{$user_idx}' AND delete_date IS NULL AND delete_date IS NULL ORDER BY create_date DESC LIMIT {$limit} OFFSET {$start_num}";
         } else {
-            $sql_statement = "SELECT board.board_idx, board.user_idx, board.contents, board.likes, board.comments, board.create_date, board.update_date FROM board LEFT JOIN follow ON board.user_idx = follow.to_user_idx OR board.user_idx = '{$user_idx}'
+            $sql_statement = "SELECT DISTINCT board.board_idx, board.user_idx, board.contents, board.likes, board.comments, board.create_date, board.update_date FROM board LEFT JOIN follow ON board.user_idx = follow.to_user_idx OR board.user_idx = '{$user_idx}'
 WHERE (follow.from_user_idx IN ('{$user_idx}') AND board.delete_date IS NULL AND follow.delete_date IS NULL) ORDER BY board.create_date DESC LIMIT {$limit} OFFSET {$start_num}";
         }
 //        echo $sql_statement;
