@@ -216,8 +216,10 @@ class ProfileModel extends Model
 
             $this->query->insert_notification($from_user_idx, $to_user_idx, $notification_type, $contents, $table_type, $idx);
             $to_firebase_token = $to_user_result[0]['firebase_token'];
-            $firebase_requester = new FirebaseRequester(new HttpRequester());
-            $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+            if (!empty($to_firebase_token)) {
+                $firebase_requester = new FirebaseRequester(new HttpRequester());
+                $firebase_requester->send_fcm($to_firebase_token, $notification_type, $contents);
+            }
             $this->query->commit_transaction();
         } else {
             // TODO: 예외 처리 : 팔로우가 없는 경우
