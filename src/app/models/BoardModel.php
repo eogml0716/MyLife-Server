@@ -364,13 +364,13 @@ class BoardModel extends Model
         // type 값을 소문자나 대문자 섞어서 오는 경우 방지, (그냥 내가 테스트할 때 에러나면 귀찮음)
         $type_upper = strtoupper($type);
 
+        $this->query->begin_transaction();
         // 좋아요를 누른 상태 -> 좋아요 테이블에 좋아요가 등록되어있지 않음
         if ($is_like) {
             // 예외 처리 : 이미 좋아요가 눌려있는 상태인 경우
             $duplicated_liked_result = $this->query->select_liked($user_idx, $type_upper, $idx);
             if ($duplicated_liked_result) ResponseHelper::get_instance()->error_response(400, 'already pressed like');
 
-            $this->query->begin_transaction();
             $this->query->insert_liked($user_idx, $type_upper, $idx);
             if ($type_upper == 'POST') {
                 // 누군가 내 게시글에 좋아요를 눌렀을 때 (여기서 "나"는 현재 로그인 해서 이용 중인 유저를 꼭 가리키는 게 아님), TODO: FCM 처리하기
